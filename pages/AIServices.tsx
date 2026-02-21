@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowRight, Play, FileText, Image as ImageIcon, Video, Mic } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, FileText, Image as ImageIcon, Video, Mic } from 'lucide-react';
 
 interface ServiceCardProps {
     title: string;
@@ -36,6 +36,35 @@ const ServiceCard = ({ title, description, icon, features }: ServiceCardProps) =
 const ProcessSlideshow: React.FC = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isHovering, setIsHovering] = useState(false);
+    const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
+    const orbitVideoRef = useRef<HTMLVideoElement | null>(null);
+    const avatarItems = [
+        {
+            title: 'Text Services',
+            description: 'Collection, labeling, sentiment analysis, and semantic annotation for NLP and LLM workflows.',
+            image: 'https://images.pexels.com/photos/1181675/pexels-photo-1181675.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&dpr=1'
+        },
+        {
+            title: 'Audio Services',
+            description: 'Voice collection, transcription, dialect analysis, and quality verification at scale.',
+            image: 'https://images.pexels.com/photos/6476589/pexels-photo-6476589.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&dpr=1'
+        },
+        {
+            title: 'Image Services',
+            description: 'Object detection, classification, tagging, and visual data quality assurance.',
+            image: 'https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&dpr=1'
+        },
+        {
+            title: 'Video Services',
+            description: 'Scene labeling, action recognition, subtitle generation, and content auditing.',
+            image: 'https://images.pexels.com/photos/574071/pexels-photo-574071.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&dpr=1'
+        },
+        {
+            title: 'Lifewood Platform',
+            description: 'Unified operations platform connecting global teams for secure, scalable, always-on AI data workflows.',
+            image: 'https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png?width=1519&height=429'
+        }
+    ];
 
     const slides = [
         {
@@ -68,6 +97,23 @@ const ProcessSlideshow: React.FC = () => {
         }, 5000);
         return () => clearInterval(timer);
     }, [isHovering]);
+
+    useEffect(() => {
+        const video = orbitVideoRef.current;
+        if (!video) return;
+
+        if (selectedAvatar !== null) {
+            video.pause();
+            return;
+        }
+
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(() => {
+                // Ignore autoplay interruptions from browser policies.
+            });
+        }
+    }, [selectedAvatar]);
 
     return (
         <motion.div
@@ -133,40 +179,48 @@ const ProcessSlideshow: React.FC = () => {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="p-12 rounded-3xl h-full flex items-center justify-center relative overflow-hidden"
             >
+                <style>{`
+                    @keyframes orbit-spin {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                    }
+                `}</style>
                 {/* Video Background */}
                 <video
+                    ref={orbitVideoRef}
                     autoPlay
                     muted
                     loop
                     playsInline
                     className="absolute inset-0 w-full h-full object-cover rounded-3xl"
                 >
-                    <source src="https://www.pexels.com/download/video/34124504/" type="video/mp4" />
+                    <source src="https://www.pexels.com/download/video/29077377/" type="video/mp4" />
                 </video>
                 
                 {/* Dark Overlay for Contrast */}
                 <div className="absolute inset-0 bg-black/30 rounded-3xl" />
                 
-                <div className="relative w-full max-w-md aspect-square flex items-center justify-center z-10">
+                <div className="relative w-full max-w-lg aspect-square flex items-center justify-center z-10">
                     {/* Central Hub */}
-                    <div className="absolute w-32 h-32 bg-white rounded-full shadow-2xl flex items-center justify-center z-10 border-4 border-brand-gold">
+                    <button
+                        type="button"
+                        onPointerDown={() => setSelectedAvatar(4)}
+                        onClick={() => setSelectedAvatar(4)}
+                        className="absolute w-32 h-32 bg-white rounded-full shadow-2xl flex items-center justify-center z-50 border-4 border-brand-gold focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2 focus:ring-offset-black"
+                        aria-label="Open Lifewood Platform details"
+                    >
                         <img src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png?width=1519&height=429" alt="lifewood" className="w-24 h-24 object-contain" />
-                    </div>
+                    </button>
                     
                     {/* Orbiting Elements - concentric circular wrappers with fixed radii (px) */}
                     {/* Orbiting Elements: two rings with two avatars each, spaced to avoid collisions */}
                     {(() => {
-                        const imgs = [
-                            'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=150',
-                            'https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=150',
-                            'https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=150',
-                            'https://images.pexels.com/photos/1181467/pexels-photo-1181467.jpeg?auto=compress&cs=tinysrgb&w=150'
-                        ];
+                        const isOrbitPaused = selectedAvatar !== null;
 
                         // two rings with two avatars each, avatars placed opposite each other
                         const rings = [
-                            { radius: 110, angles: [0, 180], items: [0, 1], offset: 0 },
-                            { radius: 170, angles: [90, 270], items: [2, 3], offset: 45 }
+                            { radius: 130, angles: [0, 180], items: [0, 1], offset: 0 },
+                            { radius: 220, angles: [90, 270], items: [2, 3], offset: 45 }
                         ];
 
                         return rings.map((ring, ridx) => {
@@ -176,52 +230,88 @@ const ProcessSlideshow: React.FC = () => {
                             const offset = ring.offset || 0;
 
                             return (
-                                <motion.div
+                                <div
                                     key={`ring-${ridx}`}
-                                    initial={{ rotate: offset }}
-                                    animate={{ rotate: offset + direction * 360 }}
-                                    transition={{ duration, repeat: Infinity, ease: 'linear' }}
                                     style={{
                                         position: 'absolute',
                                         left: '50%',
                                         top: '50%',
-                                        zIndex: 20,
+                                        zIndex: 30,
                                         width: `${diameter}px`,
                                         height: `${diameter}px`,
                                         marginLeft: `-${ring.radius}px`,
                                         marginTop: `-${ring.radius}px`,
-                                        transformOrigin: '50% 50%'
+                                        transformOrigin: '50% 50%',
+                                        transform: `rotate(${offset}deg)`,
+                                        animationName: 'orbit-spin',
+                                        animationDuration: `${duration}s`,
+                                        animationTimingFunction: 'linear',
+                                        animationIterationCount: 'infinite',
+                                        animationDirection: direction === 1 ? 'normal' : 'reverse',
+                                        animationPlayState: isOrbitPaused ? 'paused' : 'running',
+                                        pointerEvents: 'none'
                                     }}
                                 >
                                     {ring.items.map((imgIdx, i) => {
                                         const angle = ring.angles[i] ?? (i * (360 / Math.max(1, ring.items.length)));
                                         return (
-                                            <div
+                                            <button
                                                 key={`avatar-${imgIdx}`}
+                                                type="button"
+                                                onPointerDown={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedAvatar(imgIdx);
+                                                }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedAvatar(imgIdx);
+                                                }}
+                                                aria-label={`Open ${avatarItems[imgIdx].title}`}
                                                 style={{
                                                     position: 'absolute',
                                                     left: '50%',
                                                     top: '50%',
-                                                    transform: `translate(-50%, -50%) rotate(${angle}deg)`,
-                                                    transformOrigin: '50% 50%'
+                                                    width: '64px',
+                                                    height: '64px',
+                                                    padding: 0,
+                                                    border: '4px solid white',
+                                                    borderRadius: '9999px',
+                                                    background: 'white',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-${ring.radius}px) rotate(${-angle}deg)`,
+                                                    transformOrigin: '50% 50%',
+                                                    zIndex: 40,
+                                                    cursor: 'pointer',
+                                                    touchAction: 'manipulation',
+                                                    overflow: 'hidden',
+                                                    boxShadow: '0 10px 18px rgba(0,0,0,0.25)',
+                                                    pointerEvents: 'auto'
                                                 }}
                                             >
-                                                {/* static wrapper handles the radial offset so motion doesn't overwrite it */}
-                                                <div style={{ transform: `translateY(-${ring.radius}px)`, position: 'relative' }}>
-                                                    <motion.div
-                                                        animate={{ rotate: -direction * 360 }}
-                                                        transition={{ duration, repeat: Infinity, ease: 'linear' }}
-                                                        style={{ zIndex: 30 }}
-                                                    >
-                                                        <div className="w-12 h-12 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg bg-white">
-                                                            <img src={imgs[imgIdx]} className="w-full h-full object-cover" alt={`Team ${imgIdx + 1}`} />
-                                                        </div>
-                                                    </motion.div>
+                                                <div
+                                                    style={{
+                                                        zIndex: 30,
+                                                        animationName: 'orbit-spin',
+                                                        animationDuration: `${duration}s`,
+                                                        animationTimingFunction: 'linear',
+                                                        animationIterationCount: 'infinite',
+                                                        animationDirection: direction === 1 ? 'reverse' : 'normal',
+                                                        animationPlayState: isOrbitPaused ? 'paused' : 'running',
+                                                        pointerEvents: 'none',
+                                                        width: '100%',
+                                                        height: '100%'
+                                                    }}
+                                                >
+                                                    <div className="w-full h-full rounded-full overflow-hidden hover:scale-110 transition-transform">
+                                                        <img src={avatarItems[imgIdx].image} className="w-full h-full object-cover" alt={avatarItems[imgIdx].title} />
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            </button>
                                         );
                                     })}
-                                </motion.div>
+                                </div>
                             );
                         });
                     })()}
@@ -230,6 +320,50 @@ const ProcessSlideshow: React.FC = () => {
                     <svg className="absolute w-full h-full pointer-events-none opacity-20" style={{ zIndex: 5 }}>
                         <circle cx="50%" cy="50%" r="45%" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="4 4" className="text-brand-gold" />
                     </svg>
+
+                    <AnimatePresence>
+                        {selectedAvatar !== null && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 z-[70] flex items-center justify-center p-6"
+                            >
+                                <button
+                                    type="button"
+                                    aria-label="Close service details"
+                                    onClick={() => setSelectedAvatar(null)}
+                                    className="absolute inset-0 bg-transparent"
+                                />
+                                <motion.div
+                                    initial={{ y: 14, scale: 0.96, opacity: 0 }}
+                                    animate={{ y: 0, scale: 1, opacity: 1 }}
+                                    exit={{ y: 10, scale: 0.98, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="relative max-w-sm w-full rounded-2xl bg-white/95 text-gray-900 shadow-2xl border border-white/70 p-5"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedAvatar(null)}
+                                        className="absolute top-3 right-3 text-sm px-2 py-1 rounded-md bg-gray-100 hover:bg-gray-200 transition-colors"
+                                    >
+                                        Close
+                                    </button>
+                                    <div className="flex items-center gap-3 mb-3 pr-14">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-brand-gold bg-white">
+                                            <img
+                                                src={avatarItems[selectedAvatar].image}
+                                                className="w-full h-full object-cover"
+                                                alt="Selected service"
+                                            />
+                                        </div>
+                                        <h4 className="text-lg font-bold">{avatarItems[selectedAvatar].title}</h4>
+                                    </div>
+                                    <p className="text-sm leading-relaxed text-gray-700">{avatarItems[selectedAvatar].description}</p>
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </motion.div>
         </motion.div>
@@ -333,25 +467,17 @@ export const AIServices: React.FC = () => {
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ margin: "-100px" }}
                     transition={{ duration: 0.6 }}
-                    className="relative rounded-3xl overflow-hidden aspect-video bg-gray-900 group cursor-pointer shadow-2xl"
+                    className="relative rounded-3xl overflow-hidden aspect-video bg-gray-900 shadow-2xl"
                 >
-                    <img 
-                        src="https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
-                        alt="Global Data Collection" 
-                        className="w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-500"
+                    <iframe
+                        className="w-full h-full"
+                        src="https://www.youtube.com/embed/g_JvAVL0WY4?rel=0"
+                        title="Lifewood video"
+                        loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        allowFullScreen
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col items-center justify-center">
-                        <motion.div 
-                            whileHover={{ scale: 1.1 }}
-                            transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                            className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/40 transition-all"
-                        >
-                            <Play className="text-white fill-white ml-1" size={32} />
-                        </motion.div>
-                    </div>
-                    <div className="absolute bottom-8 left-8 text-white">
-                        <p className="text-xl font-medium">Lifewood enables scalable, always-on data collection</p>
-                    </div>
                 </motion.div>
             </section>
 

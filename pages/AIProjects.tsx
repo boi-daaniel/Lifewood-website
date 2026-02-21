@@ -8,6 +8,7 @@ interface ProjectItem {
     icon: React.ReactNode;
     description: string;
     details: string[];
+    image: string;
 }
 
 export const AIProjects: React.FC = () => {
@@ -24,7 +25,8 @@ export const AIProjects: React.FC = () => {
                 'Intelligent field mapping',
                 'OCR integration',
                 'Quality assurance workflows'
-            ]
+            ],
+            image: 'https://images.pexels.com/photos/590020/pexels-photo-590020.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1'
         },
         {
             id: 2,
@@ -36,7 +38,8 @@ export const AIProjects: React.FC = () => {
                 'Model training pipelines',
                 'Performance optimization',
                 'Model evaluation frameworks'
-            ]
+            ],
+            image: 'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1'
         },
         {
             id: 3,
@@ -48,7 +51,8 @@ export const AIProjects: React.FC = () => {
                 'Scenario annotation',
                 'Edge case identification',
                 'Safety validation datasets'
-            ]
+            ],
+            image: 'https://images.pexels.com/photos/112460/pexels-photo-112460.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1'
         },
         {
             id: 4,
@@ -60,7 +64,8 @@ export const AIProjects: React.FC = () => {
                 'Intent classification',
                 'Sentiment analysis training',
                 'Response quality benchmarking'
-            ]
+            ],
+            image: 'https://images.pexels.com/photos/8867431/pexels-photo-8867431.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1'
         },
         {
             id: 5,
@@ -72,7 +77,8 @@ export const AIProjects: React.FC = () => {
                 'Speech audio collection',
                 'Dialect and accent diversity',
                 'Domain-specific terminology'
-            ]
+            ],
+            image: 'https://images.pexels.com/photos/3756766/pexels-photo-3756766.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1'
         },
         {
             id: 6,
@@ -84,13 +90,16 @@ export const AIProjects: React.FC = () => {
                 'Historical record matching',
                 'Relationship mapping',
                 'Citation verification'
-            ]
+            ],
+            image: 'https://images.pexels.com/photos/6801648/pexels-photo-6801648.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1'
         }
     ];
 
     const toggleExpand = (id: number) => {
         setExpandedId(expandedId === id ? null : id);
     };
+
+    const activeProject = projects.find((project) => project.id === expandedId) ?? projects[0];
 
     return (
         <div className="bg-white dark:bg-brand-green min-h-screen pt-24 transition-colors duration-300">
@@ -155,12 +164,24 @@ export const AIProjects: React.FC = () => {
                             className="hidden lg:block"
                         >
                             <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-square">
-                                <img 
-                                    src="https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1" 
-                                    alt="AI Projects" 
-                                    className="w-full h-full object-cover"
-                                />
+                                <AnimatePresence mode="wait">
+                                    <motion.img
+                                        key={activeProject.id}
+                                        initial={{ opacity: 0.35, scale: 1.03 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.98 }}
+                                        transition={{ duration: 0.28, ease: 'easeOut' }}
+                                        src={activeProject.image}
+                                        alt={activeProject.title}
+                                        className="w-full h-full object-cover absolute inset-0"
+                                    />
+                                </AnimatePresence>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+                                <div className="absolute bottom-4 left-4 right-4">
+                                    <div className="inline-flex bg-black/45 text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm">
+                                        {activeProject.title}
+                                    </div>
+                                </div>
                             </div>
                         </motion.div>
 

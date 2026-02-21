@@ -10,6 +10,10 @@ import { Services } from './components/Services';
 import { Footer } from './components/Footer';
 import { AIServices } from './pages/AIServices';
 import { AIProjects } from './pages/AIProjects';
+import { AboutUs } from './pages/AboutUs';
+import { Offices } from './pages/Offices';
+import { WhatWeOfferTypeA, WhatWeOfferTypeB, WhatWeOfferTypeC } from './pages/WhatWeOfferTypes';
+import { WhatWeOfferTypeD } from './pages/WhatWeOfferTypeD';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -46,6 +50,12 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/ai-services" element={<AIServices />} />
           <Route path="/ai-projects" element={<AIProjects />} />
+          <Route path="/about-us" element={<AboutUs />} />
+          <Route path="/offices" element={<Offices />} />
+          <Route path="/what-we-offer/type-a" element={<WhatWeOfferTypeA />} />
+          <Route path="/what-we-offer/type-b" element={<WhatWeOfferTypeB />} />
+          <Route path="/what-we-offer/type-c" element={<WhatWeOfferTypeC />} />
+          <Route path="/what-we-offer/type-d" element={<WhatWeOfferTypeD />} />
         </Routes>
         <Footer />
       </div>
