@@ -122,13 +122,13 @@ export const Footer: React.FC = () => {
                             <div>
                                 <h5 className="font-bold mb-2 text-brand-gold text-xs md:text-sm uppercase tracking-wide">Follow Us</h5>
                                 <div className="flex gap-2.5">
-                                    <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-white/10 hover:bg-brand-gold hover:text-black flex items-center justify-center transition-all">
+                                    <a href="https://www.linkedin.com/company/lifewood-data-technology-ltd./posts/?feedView=all" target="_blank" rel="noopener noreferrer" className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-white/10 hover:bg-brand-gold hover:text-black flex items-center justify-center transition-all">
                                         <Linkedin size={15} />
                                     </a>
-                                    <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-white/10 hover:bg-brand-gold hover:text-black flex items-center justify-center transition-all">
+                                    <a href="https://www.facebook.com/LifewoodPH" target="_blank" rel="noopener noreferrer" className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-white/10 hover:bg-brand-gold hover:text-black flex items-center justify-center transition-all">
                                         <Facebook size={15} />
                                     </a>
-                                    <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-white/10 hover:bg-brand-gold hover:text-black flex items-center justify-center transition-all">
+                                    <a href="https://www.instagram.com/lifewood_official/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-white/10 hover:bg-brand-gold hover:text-black flex items-center justify-center transition-all">
                                         <Instagram size={15} />
                                     </a>
                                 </div>
