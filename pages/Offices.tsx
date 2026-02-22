@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useInView } from 'framer-motion';
 
 declare global {
     interface Window {
@@ -64,6 +64,62 @@ const ensureScriptTag = (id: string, src: string) =>
         script.onerror = () => reject(new Error(`Failed to load ${src}`));
         document.body.appendChild(script);
     });
+
+type CountUpProps = {
+    end: number;
+    suffix?: string;
+    durationMs?: number;
+    delayMs?: number;
+    className?: string;
+};
+
+const CountUp: React.FC<CountUpProps> = ({ end, suffix = '', durationMs = 1200, delayMs = 0, className }) => {
+    const ref = useRef<HTMLParagraphElement | null>(null);
+    const isInView = useInView(ref, { once: true, margin: '-80px' });
+    const [value, setValue] = useState(0);
+
+    useEffect(() => {
+        if (!isInView) return;
+
+        let frameId = 0;
+        let timeoutId: number | null = null;
+        let startAt = 0;
+
+        const tick = (now: number) => {
+            if (!startAt) startAt = now;
+            const progress = Math.min((now - startAt) / durationMs, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setValue(Math.round(end * eased));
+            if (progress < 1) frameId = requestAnimationFrame(tick);
+        };
+
+        const start = () => {
+            frameId = requestAnimationFrame(tick);
+        };
+
+        if (delayMs > 0) timeoutId = window.setTimeout(start, delayMs);
+        else start();
+
+        return () => {
+            if (timeoutId !== null) window.clearTimeout(timeoutId);
+            if (frameId) cancelAnimationFrame(frameId);
+        };
+    }, [delayMs, durationMs, end, isInView]);
+
+    return (
+        <motion.p
+            ref={ref}
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.35 }}
+            className={className}
+        >
+            {new Intl.NumberFormat('en-US').format(value)}
+            {suffix}
+        </motion.p>
+    );
+};
 
 export const Offices: React.FC = () => {
     const mapRef = useRef<HTMLDivElement | null>(null);
@@ -225,7 +281,7 @@ export const Offices: React.FC = () => {
     }, []);
 
     return (
-        <div className="bg-[#f3f3f3] min-h-screen pt-28 md:pt-36 pb-20 scroll-smooth">
+        <div className="bg-[#f3f3f3] dark:bg-brand-green min-h-screen pt-22 md:pt-32 pb-20 scroll-smooth transition-colors duration-300 dark:[&_h1]:text-white dark:[&_h2]:text-white dark:[&_h3]:text-white dark:[&_h4]:text-white dark:[&_p]:text-gray-200 dark:[&_blockquote]:text-gray-100">
             <style>{`
                 .lifewood-map-marker {
                     background: transparent;
@@ -376,7 +432,7 @@ export const Offices: React.FC = () => {
 
             <section className="container mx-auto px-6 mt-10" id="office-map">
                 <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-                    <div className="offices-map xl:col-span-3 bg-[#9fcfdf] rounded-3xl overflow-hidden relative min-h-[420px] md:min-h-[560px]">
+                    <div className="offices-map xl:col-span-3 bg-[#9fcfdf] rounded-3xl overflow-hidden relative min-h-[320px] sm:min-h-[420px] md:min-h-[560px]">
                         <div ref={mapRef} className="absolute inset-0" />
                     </div>
 
@@ -411,22 +467,22 @@ export const Offices: React.FC = () => {
                             initial={{ opacity: 0, y: 16 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.45, delay: 0.1 }}
-                            className="w-full bg-[#f2b142] rounded-3xl p-10 flex flex-col justify-center min-h-[420px] md:min-h-[560px]"
+                            className="w-full bg-[#f2b142] rounded-3xl p-6 md:p-10 flex flex-col justify-center min-h-[320px] sm:min-h-[420px] md:min-h-[560px]"
                             id="office-stats"
                         >
                         <div>
-                            <motion.p initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="text-6xl font-bold text-[#0d3a2a]">56,788</motion.p>
-                            <p className="text-4xl mt-2 text-[#0d3a2a]">Online Resources</p>
+                            <CountUp end={56788} className="text-4xl sm:text-5xl md:text-6xl font-bold text-[#0d3a2a]" />
+                            <p className="text-2xl sm:text-3xl md:text-4xl mt-2 text-[#0d3a2a]">Online Resources</p>
                         </div>
-                        <div className="h-px bg-white/70 my-10" />
+                        <div className="h-px bg-white/70 my-6 md:my-10" />
                         <div>
-                            <motion.p initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.08 }} className="text-6xl font-bold text-[#0d3a2a]">30+</motion.p>
-                            <p className="text-4xl mt-2 text-[#0d3a2a]">Countries</p>
+                            <CountUp end={30} suffix="+" delayMs={100} className="text-4xl sm:text-5xl md:text-6xl font-bold text-[#0d3a2a]" />
+                            <p className="text-2xl sm:text-3xl md:text-4xl mt-2 text-[#0d3a2a]">Countries</p>
                         </div>
-                        <div className="h-px bg-white/70 my-10" />
+                        <div className="h-px bg-white/70 my-6 md:my-10" />
                         <div>
-                            <motion.p initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.16 }} className="text-6xl font-bold text-[#0d3a2a]">40+</motion.p>
-                            <p className="text-4xl mt-2 text-[#0d3a2a]">Centers</p>
+                            <CountUp end={40} suffix="+" delayMs={200} className="text-4xl sm:text-5xl md:text-6xl font-bold text-[#0d3a2a]" />
+                            <p className="text-2xl sm:text-3xl md:text-4xl mt-2 text-[#0d3a2a]">Centers</p>
                         </div>
                         </motion.div>
                     </div>

@@ -32,10 +32,10 @@ const navItems: NavItem[] = [
             { label: 'Type D-AIGC', href: '/what-we-offer/type-d' }
         ]
     },
-    { label: 'Philanthropy & Impact', href: '#impact' },
-    { label: 'Careers', href: '#contact' },
-    { label: 'Contact Us', href: '#contact' },
-    { label: 'Internal News', href: '#' },
+    { label: 'Philanthropy & Impact', href: '/philanthropy-impact' },
+    { label: 'Careers', href: '/careers' },
+    { label: 'Contact Us', href: '/contact-us' },
+    { label: 'Internal News', href: '/internal-news' },
 ];
 
 export const Navbar: React.FC = () => {
@@ -58,9 +58,19 @@ export const Navbar: React.FC = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const isActive = (href: string) => {
-        if (href === '/') return location.pathname === '/';
-        return location.pathname === href;
+    const normalizePath = (path: string) => {
+        const normalized = path.replace(/\/+$/, '');
+        return normalized === '' ? '/' : normalized;
+    };
+
+    const isPathActive = (href: string) => {
+        if (!href.startsWith('/')) return false;
+        return normalizePath(location.pathname) === normalizePath(href);
+    };
+
+    const isActive = (item: NavItem) => {
+        if (isPathActive(item.href)) return true;
+        return item.children?.some((child) => isPathActive(child.href)) ?? false;
     };
 
     const toggleTheme = () => {
@@ -92,7 +102,7 @@ export const Navbar: React.FC = () => {
                 {/* Desktop Nav */}
                 <div className="hidden lg:flex items-center flex-nowrap transition-all duration-300 gap-1.5 flex-1 justify-center">
                     {navItems.map((item) => {
-                        const active = isActive(item.href);
+                        const active = isActive(item);
                         return (
                             <div key={item.label} className="relative group">
                                 <button 
@@ -127,7 +137,9 @@ export const Navbar: React.FC = () => {
                                                     <Link
                                                         key={child.label}
                                                         to={child.href}
-                                                        className="block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-brand-green"
+                                                        className={`block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium hover:bg-gray-50 ${
+                                                            isPathActive(child.href) ? 'text-brand-green bg-gray-50' : 'text-gray-700 hover:text-brand-green'
+                                                        }`}
                                                     >
                                                         {child.label}
                                                     </Link>
@@ -187,7 +199,9 @@ export const Navbar: React.FC = () => {
                             {item.href.startsWith('/') ? (
                                 <Link
                                     to={item.href}
-                                    className="text-lg font-medium text-gray-800 py-2 border-b border-gray-100 last:border-0 flex justify-between items-center"
+                                    className={`text-lg font-medium py-2 border-b border-gray-100 last:border-0 flex justify-between items-center ${
+                                        isPathActive(item.href) ? 'text-brand-green' : 'text-gray-800'
+                                    }`}
                                     onClick={() => setIsOpen(false)}
                                 >
                                     {item.label}
@@ -195,7 +209,9 @@ export const Navbar: React.FC = () => {
                             ) : (
                                 <a 
                                     href={item.href}
-                                    className="text-lg font-medium text-gray-800 py-2 border-b border-gray-100 last:border-0 flex justify-between items-center"
+                                    className={`text-lg font-medium py-2 border-b border-gray-100 last:border-0 flex justify-between items-center ${
+                                        isActive(item) ? 'text-brand-green' : 'text-gray-800'
+                                    }`}
                                     onClick={() => !item.children && setIsOpen(false)}
                                 >
                                     {item.label}
@@ -209,7 +225,9 @@ export const Navbar: React.FC = () => {
                                             <Link
                                                 key={child.label}
                                                 to={child.href}
-                                                className="text-base text-gray-600 py-1"
+                                                className={`text-base py-1 ${
+                                                    isPathActive(child.href) ? 'text-brand-green font-medium' : 'text-gray-600'
+                                                }`}
                                                 onClick={() => setIsOpen(false)}
                                             >
                                                 {child.label}

@@ -1,0 +1,39 @@
+.offer-textfx :is(h1, h2, h3, h4, p, blockquote, button, .offer-textfx-node) {
+    transition:
+        transform 260ms ease,
+        text-shadow 260ms ease,
+        letter-spacing 260ms ease,
+        filter 260ms ease;
+    will-change: transform, text-shadow, letter-spacing, filter;
+}
+
+.offer-textfx :is(h1, h2, h3, h4):hover {
+    transform: translateY(-2px);
+    letter-spacing: 0.012em;
+    text-shadow: 0 10px 20px rgba(15, 23, 42, 0.14);
+}
+
+.offer-textfx :is(p, blockquote, .offer-textfx-node):hover {
+    transform: translateY(-2px);
+    letter-spacing: 0.006em;
+    text-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+}
+
+.offer-textfx button:hover {
+    transform: translateY(-1px) scale(1.01);
+}
+
+.offer-textfx :is(h1, h2, h3, h4, p, blockquote, .offer-textfx-node):active {
+    transform: translateY(0);
+    text-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .offer-textfx :is(h1, h2, h3, h4, p, blockquote, button, .offer-textfx-node) {
+        transition: none;
+        transform: none !important;
+        letter-spacing: normal !important;
+        text-shadow: none !important;
+        filter: none !important;
+    }
+}

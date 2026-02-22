@@ -25,7 +25,7 @@ export const Clients: React.FC = () => {
             <motion.div
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
-                viewport={{ margin: "-100px" }}
+                viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 1 }}
             >
                 <div className="container mx-auto px-6 text-center mb-16">

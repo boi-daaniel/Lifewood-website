@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Plus, Minus, Database, Brain, Zap, MessageSquare, BookOpen, Globe } from 'lucide-react';
+import { Plus, Minus, Database, Brain, Zap, MessageSquare, BookOpen, Globe } from 'lucide-react';
+import { ContactUsButton } from '../components/ContactUsButton';
 
 interface ProjectItem {
     id: number;
@@ -102,7 +103,7 @@ export const AIProjects: React.FC = () => {
     const activeProject = projects.find((project) => project.id === expandedId) ?? projects[0];
 
     return (
-        <div className="bg-white dark:bg-brand-green min-h-screen pt-24 transition-colors duration-300">
+        <div className="bg-white dark:bg-brand-green min-h-screen pt-20 md:pt-24 transition-colors duration-300 dark:[&_h1]:text-white dark:[&_h2]:text-white dark:[&_h3]:text-white dark:[&_h4]:text-white dark:[&_p]:text-gray-200 dark:[&_blockquote]:text-gray-100">
             {/* Hero Section */}
             <section className="container mx-auto px-6 py-12 md:py-20">
                 <motion.div
@@ -111,7 +112,7 @@ export const AIProjects: React.FC = () => {
                     viewport={{ once: false, margin: "-100px" }}
                     transition={{ duration: 0.6 }}
                 >
-                    <h1 className="text-5xl md:text-7xl font-bold mb-8 text-gray-900 dark:text-white tracking-tight overflow-hidden">
+                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-8 text-gray-900 dark:text-white tracking-tight overflow-hidden">
                         <motion.span
                             initial={{ opacity: 0, x: -50 }}
                             whileInView={{ opacity: 1, x: 0 }}
@@ -133,14 +134,12 @@ export const AIProjects: React.FC = () => {
                         From building AI datasets to enterprise language and error-unit to developing custom AI phenomenal production and open new opportunities in under-resourced economics, you'll see how Lifewood is bringing the future with innovation, integrity, and a focus on people.
                     </motion.p>
                     
-                    <button className="bg-brand-gold hover:bg-yellow-500 text-black px-8 py-3 rounded-full font-medium flex items-center gap-2 transition-colors">
-                        Contact us <ArrowRight size={18} />
-                    </button>
+                    <ContactUsButton />
                 </motion.div>
             </section>
 
             {/* Main Content - Grid Layout */}
-            <section className="container mx-auto px-6 py-16 mb-20">
+            <section className="container mx-auto px-6 py-12 md:py-16 mb-14 md:mb-20">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -149,7 +148,7 @@ export const AIProjects: React.FC = () => {
                 >
                     <div className="mb-12">
                         <span className="inline-block bg-gray-900 dark:bg-gray-700 text-white px-4 py-2 rounded-full text-sm font-medium mb-6">Projects</span>
-                        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
                             What we currently handle
                         </h2>
                     </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 export const About: React.FC = () => {
     return (
@@ -9,7 +10,7 @@ export const About: React.FC = () => {
                 <motion.div 
                     initial={{ opacity: 0, y: 50 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ margin: "-100px" }}
+                    viewport={{ once: true, margin: "-100px" }}
                     transition={{ duration: 0.8 }}
                     className="flex flex-col lg:flex-row gap-16 items-start"
                 >
@@ -34,13 +35,13 @@ export const About: React.FC = () => {
                         </p>
 
                         <div className="flex flex-wrap gap-4">
-                            <button className="px-6 py-3 rounded-full bg-brand-dark dark:bg-white dark:text-brand-dark text-white font-medium hover:bg-black dark:hover:bg-gray-100 transition-colors flex items-center gap-2">
+                            <Link
+                                to="/about-us"
+                                className="px-6 py-3 rounded-full bg-brand-dark dark:bg-white dark:text-brand-dark text-white font-medium hover:bg-black dark:hover:bg-gray-100 transition-colors flex items-center gap-2"
+                            >
                                 Know Us Better
                                 <ArrowRight size={16} />
-                            </button>
-                            <button className="px-6 py-3 rounded-full border border-gray-300 dark:border-white/20 text-gray-700 dark:text-white font-medium hover:bg-gray-50 dark:hover:bg-white/10 transition-colors">
-                                Explore Our Culture
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </motion.div>

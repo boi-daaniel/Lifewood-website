@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Globe, Users, MessageCircle, Database, ArrowUpRight } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { motion, useSpring, useTransform, useInView } from 'framer-motion';
 import { StatItem } from '../types';
 
@@ -31,10 +31,10 @@ const stats: StatItem[] = [
         label: 'Global Delivery Centers',
         value: '40+',
         description: 'Strategically located centers ensuring 24/7 operational excellence.',
-        bgColor: 'bg-white dark:bg-white/10 shadow-lg dark:shadow-none',
-        textColor: 'text-gray-900 dark:text-white',
-        iconBgColor: 'bg-gray-100 dark:bg-white/20',
-        descriptionColor: 'text-gray-600 dark:text-gray-300'
+        bgColor: 'bg-white shadow-lg',
+        textColor: 'text-gray-900',
+        iconBgColor: 'bg-gray-100',
+        descriptionColor: 'text-gray-600'
     },
     {
         id: '2',
@@ -51,10 +51,10 @@ const stats: StatItem[] = [
         label: 'Language Capabilities',
         value: '50+',
         description: 'Covering major dialects and rare languages to train truly global models.',
-        bgColor: 'bg-brand-green dark:bg-white',
-        textColor: 'text-white dark:text-brand-green',
-        iconBgColor: 'bg-white/20 dark:bg-brand-green/10',
-        descriptionColor: 'text-green-100 dark:text-brand-green/80'
+        bgColor: 'bg-brand-green',
+        textColor: 'text-white',
+        iconBgColor: 'bg-white/20',
+        descriptionColor: 'text-green-100'
     },
     {
         id: '4',
@@ -77,11 +77,11 @@ export const GlobalReach: React.FC = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 50 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ margin: "-100px" }}
+                    viewport={{ once: true, margin: "-100px" }}
                     transition={{ duration: 0.8 }}
                 >
                     <div className="mb-12">
-                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Our Global Footprint</h2>
+                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Our Global Footprint</h2>
                         <p className="text-gray-500 dark:text-green-100/70 mt-2">Scale your AI with our worldwide infrastructure.</p>
                     </div>
 
@@ -90,27 +90,36 @@ export const GlobalReach: React.FC = () => {
                         <div
                             key={stat.id}
                             onMouseEnter={() => setActiveId(stat.id)}
+                            onClick={() => setActiveId(stat.id)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setActiveId(stat.id);
+                                }
+                            }}
                             className={`
                                 relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-500 ease-out
-                                ${activeId === stat.id ? 'lg:flex-[3] flex-[3]' : 'lg:flex-[1] flex-[1]'}
-                                ${activeId === stat.id ? 'h-[300px] lg:h-auto' : 'h-[100px] lg:h-auto'}
+                                min-h-[220px] lg:min-h-0
+                                ${activeId === stat.id ? 'lg:flex-[3]' : 'lg:flex-[1]'}
                                 ${stat.bgColor}
                             `}
                         >
-                            <div className="absolute top-6 right-6 z-10">
+                            <div className="absolute top-4 md:top-6 right-4 md:right-6 z-10">
                                 <div className={`p-2 rounded-full ${stat.iconBgColor || (stat.textColor === 'text-white' ? 'bg-white/20' : 'bg-black/10')}`}>
-                                    <ArrowUpRight className={stat.textColor} />
+                                    <Plus className={stat.textColor} />
                                 </div>
                             </div>
                             
-                            <div className="absolute inset-0 p-8 flex flex-col justify-center h-full">
-                                <h3 className={`text-4xl lg:text-5xl font-bold mb-4 ${stat.textColor}`}>
+                            <div className="absolute inset-0 p-5 md:p-8 flex flex-col justify-center h-full">
+                                <h3 className={`text-3xl md:text-4xl lg:text-5xl font-bold mb-4 ${stat.textColor}`}>
                                     <Counter value={stat.value} />
                                 </h3>
 
                                 {/* Main Content - Only visible when active */}
-                                <div className={`transition-opacity duration-300 ${activeId === stat.id ? 'opacity-100 delay-200' : 'opacity-0 pointer-events-none absolute'}`}>
-                                    <h4 className={`text-xl font-semibold mb-2 ${stat.textColor}`}>
+                                <div className={`transition-opacity duration-300 ${activeId === stat.id ? 'opacity-100 lg:delay-200' : 'opacity-100 lg:opacity-0 lg:pointer-events-none lg:absolute'}`}>
+                                    <h4 className={`text-lg md:text-xl font-semibold mb-2 ${stat.textColor}`}>
                                         {stat.label}
                                     </h4>
                                     

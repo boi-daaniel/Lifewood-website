@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { ThreeDImageCarousel } from '../components/ThreeDImageCarousel';
+import { ContactUsButton } from '../components/ContactUsButton';
 
 type TabType = 'mission' | 'vision';
 
@@ -25,78 +27,9 @@ export const AboutUs: React.FC = () => {
         ],
         []
     );
-    const [carouselIndex, setCarouselIndex] = useState<number>(Math.floor(galleryImages.length / 2));
-
-    const getRelativeIndex = (idx: number) => {
-        const total = galleryImages.length;
-        let diff = idx - carouselIndex;
-        if (diff > total / 2) diff -= total;
-        if (diff < -total / 2) diff += total;
-        return diff;
-    };
-
-    const shiftCarousel = (delta: number) => {
-        setCarouselIndex((prev) => (prev + delta + galleryImages.length) % galleryImages.length);
-    };
 
     return (
-        <div className="bg-[#f3f3f3] min-h-screen pt-28 md:pt-36 pb-20 scroll-smooth">
-            <style>{`
-                .about-gallery-album-shell {
-                    position: relative;
-                    width: 100%;
-                    max-width: 1060px;
-                    margin: 0 auto;
-                    height: 300px;
-                    overflow: visible;
-                    perspective: 1400px;
-                }
-                @media (min-width: 768px) {
-                    .about-gallery-album-shell {
-                        height: 460px;
-                    }
-                }
-                .about-gallery-album {
-                    position: absolute;
-                    inset: 0;
-                    display: grid;
-                    place-items: center;
-                    transform-style: preserve-3d;
-                }
-                .about-gallery-album-card {
-                    position: absolute;
-                    left: 50%;
-                    top: 50%;
-                    width: clamp(170px, 24vw, 340px);
-                    aspect-ratio: 4 / 3;
-                    border-radius: 14px;
-                    overflow: hidden;
-                    border: 1px solid rgba(255, 255, 255, 0.32);
-                    box-shadow: 0 12px 18px rgba(8, 22, 38, 0.26);
-                    transform-style: preserve-3d;
-                    transition: transform 680ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 420ms ease, opacity 360ms ease, filter 420ms ease;
-                    will-change: transform, opacity;
-                }
-                .about-gallery-album-img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                    transition: transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 420ms ease;
-                }
-                .about-gallery-album-card-btn {
-                    all: unset;
-                    display: block;
-                    width: 100%;
-                    height: 100%;
-                    cursor: pointer;
-                }
-                .about-gallery-album-card.is-center .about-gallery-album-img {
-                    transform: scale(1.03);
-                }
-                .about-gallery-album-card.is-side .about-gallery-album-img {
-                    filter: saturate(0.92) brightness(0.9);
-                }
-            `}</style>
+        <div className="bg-[#f3f3f3] dark:bg-brand-green min-h-screen pt-28 md:pt-36 pb-20 scroll-smooth transition-colors duration-300 dark:[&_h1]:text-white dark:[&_h2]:text-white dark:[&_h3]:text-white dark:[&_h4]:text-white dark:[&_p]:text-gray-200 dark:[&_blockquote]:text-gray-100">
             <section className="container mx-auto px-6" id="about-top">
                 <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                     <h1 className="text-4xl md:text-6xl font-semibold text-gray-900 mb-6 overflow-hidden">
@@ -117,9 +50,7 @@ export const AboutUs: React.FC = () => {
                         While we are motivated by business and economic objectives, we remain committed to our core business beliefs
                         that shape our corporate and individual behaviour around the world.
                     </p>
-                    <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#f2b142] text-xs font-medium text-[#0b3f2f]">
-                        Contact us <span className="w-4 h-4 rounded-full bg-[#0b3f2f] text-white grid place-items-center text-[10px]">+</span>
-                    </span>
+                    <ContactUsButton />
                 </motion.div>
             </section>
 
@@ -155,8 +86,8 @@ export const AboutUs: React.FC = () => {
                                         {item.char}
                                     </div>
                                     <div className="p-4 md:p-5">
-                                        <p className="text-xs tracking-[0.18em] font-bold text-[#0d3a2a] mb-2 transition-colors duration-300 group-hover:text-[#046241]">{item.title}</p>
-                                        <p className="text-sm text-gray-800 leading-relaxed transition-colors duration-300 group-hover:text-[#1f2a34]">{item.text}</p>
+                                        <p className="text-xs tracking-[0.18em] font-bold text-[#0d3a2a] dark:!text-[#0d3a2a] mb-2 transition-colors duration-300 group-hover:text-[#046241]">{item.title}</p>
+                                        <p className="text-sm text-gray-800 dark:!text-gray-800 leading-relaxed transition-colors duration-300 group-hover:text-[#1f2a34]">{item.text}</p>
                                     </div>
                                 </motion.div>
                             ))}
@@ -252,11 +183,11 @@ export const AboutUs: React.FC = () => {
                                 initial={{ opacity: 0, y: 8 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.3 }}
-                                className="text-4xl text-[#0d3a2a] mb-4"
+                                className="text-4xl text-[#0d3a2a] dark:!text-[#0d3a2a] mb-4"
                             >
                                 {activeTab === 'mission' ? 'Our Mission' : 'Our Vision'}
                             </motion.h3>
-                            <p className="text-gray-800 leading-relaxed">
+                            <p className="text-gray-800 dark:!text-gray-800 leading-relaxed">
                                 {activeTab === 'mission'
                                     ? 'To develop and deploy cutting edge AI technologies that solve real-world problems, empower communities, and advance sustainable practices.'
                                     : 'To be the most trusted global partner for responsible AI data and innovation, creating measurable impact for business and society.'}
@@ -272,58 +203,23 @@ export const AboutUs: React.FC = () => {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.45 }}
-                    className="about-gallery-album-shell"
                 >
-                    <div className="about-gallery-album">
-                        {galleryImages.map((item, idx) => {
-                            const diff = getRelativeIndex(idx);
-                            const abs = Math.abs(diff);
-                            const isCenter = diff === 0;
-                            const isVisible = abs <= 3;
-                            const offset = diff * -142;
-                            const rotate = diff * 30;
-                            const z = 230 - abs * 64;
-                            const scale = 1 - abs * 0.08;
-                            const transform = `translate(-50%, -50%) translateX(${offset}px) rotateY(${rotate}deg) translateZ(${z}px) scale(${Math.max(0.72, scale)})`;
-                            return (
-                                <div
-                                    key={item.src}
-                                    className={`about-gallery-album-card${isCenter ? ' is-center' : ' is-side'}`}
-                                    style={
-                                        {
-                                            transform,
-                                            opacity: isVisible ? 1 - Math.max(0, abs - 1) * 0.25 : 0,
-                                            pointerEvents: isVisible ? 'auto' : 'none',
-                                            zIndex: 300 - abs * 20
-                                        } as React.CSSProperties
-                                    }
-                                >
-                                    <button
-                                        type="button"
-                                        className="about-gallery-album-card-btn"
-                                        onClick={() => {
-                                            if (!isCenter) {
-                                                setCarouselIndex(idx);
-                                                return;
-                                            }
-                                            shiftCarousel(1);
-                                        }}
-                                        aria-label={!isCenter ? `Show ${item.alt}` : `Next image`}
-                                    >
-                                        <img className="about-gallery-album-img" src={item.src} alt={item.alt} />
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
+                    <ThreeDImageCarousel images={galleryImages} />
                 </motion.div>
 
                 <div className="text-center mt-10">
-                    <img
-                        src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png?width=1519&height=429"
-                        alt="Lifewood"
-                        className="h-16 w-auto mx-auto"
-                    />
+                    <div className="mx-auto h-16 w-[220px] md:w-[260px]">
+                        <img
+                            src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png?width=1519&height=429"
+                            alt="Lifewood"
+                            className="h-full w-full object-contain dark:hidden"
+                        />
+                        <img
+                            src="https://framerusercontent.com/images/Ca8ppNsvJIfTsWEuHr50gvkDow.png?scale-down-to=512&width=2624&height=474"
+                            alt="Lifewood"
+                            className="hidden h-full w-full object-contain dark:block scale-[0.8] origin-center"
+                        />
+                    </div>
                     <p className="text-sm text-gray-600 mt-2">Be Amazed</p>
                 </div>
             </section>

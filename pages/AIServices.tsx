@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, FileText, Image as ImageIcon, Video, Mic } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ContactUsButton } from '../components/ContactUsButton';
 
 interface ServiceCardProps {
     title: string;
@@ -38,6 +40,9 @@ const ProcessSlideshow: React.FC = () => {
     const [isHovering, setIsHovering] = useState(false);
     const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
     const orbitVideoRef = useRef<HTMLVideoElement | null>(null);
+    const [viewportWidth, setViewportWidth] = useState<number>(
+        typeof window !== 'undefined' ? window.innerWidth : 1280
+    );
     const avatarItems = [
         {
             title: 'Text Services',
@@ -78,7 +83,7 @@ const ProcessSlideshow: React.FC = () => {
         },
         {
             title: 'Data Acquisition',
-            description: 'We provide end-to-end data acquisition solutions—capturing, processing, and managing large-scale, diverse datasets.'
+            description: 'We provide end-to-end data acquisition solutionsâ€”capturing, processing, and managing large-scale, diverse datasets.'
         },
         {
             title: 'Data Curation',
@@ -115,16 +120,28 @@ const ProcessSlideshow: React.FC = () => {
         }
     }, [selectedAvatar]);
 
+    useEffect(() => {
+        const onResize = () => setViewportWidth(window.innerWidth);
+        onResize();
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+
+    const isSmallOrbit = viewportWidth < 640;
+    const isMediumOrbit = viewportWidth < 1024;
+    const hubSize = isSmallOrbit ? 92 : isMediumOrbit ? 112 : 128;
+    const avatarSize = isSmallOrbit ? 50 : isMediumOrbit ? 58 : 64;
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ margin: "-100px" }}
             transition={{ duration: 0.6 }}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-center"
         >
             {/* Slideshow */}
-            <div className="bg-gradient-to-br from-[#133020] via-[#0a1f15] to-black text-white p-12 rounded-3xl h-full flex flex-col justify-center relative overflow-hidden shadow-2xl">
+            <div className="bg-gradient-to-br from-[#133020] via-[#0a1f15] to-black text-white p-6 md:p-8 lg:p-12 rounded-3xl h-full min-h-[360px] md:min-h-[430px] flex flex-col justify-center relative overflow-hidden shadow-2xl">
                 <div className="relative z-10">
                     <motion.div 
                         key={currentSlide}
@@ -149,7 +166,7 @@ const ProcessSlideshow: React.FC = () => {
                     {/* Pagination Dots - moved to bottom center */}
                 </div>
                 <div
-                    className="absolute left-1/2 bottom-6 transform -translate-x-1/2 z-20"
+                    className="absolute left-1/2 bottom-4 md:bottom-6 transform -translate-x-1/2 z-20"
                     onMouseEnter={() => setIsHovering(true)}
                     onMouseLeave={() => setIsHovering(false)}
                 >
@@ -177,7 +194,7 @@ const ProcessSlideshow: React.FC = () => {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ margin: "-100px" }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="p-12 rounded-3xl h-full flex items-center justify-center relative overflow-hidden"
+                className="p-4 sm:p-8 md:p-10 lg:p-12 rounded-3xl h-full min-h-[360px] md:min-h-[430px] flex items-center justify-center relative overflow-hidden"
             >
                 <style>{`
                     @keyframes orbit-spin {
@@ -200,16 +217,25 @@ const ProcessSlideshow: React.FC = () => {
                 {/* Dark Overlay for Contrast */}
                 <div className="absolute inset-0 bg-black/30 rounded-3xl" />
                 
-                <div className="relative w-full max-w-lg aspect-square flex items-center justify-center z-10">
+                <div className="relative w-full max-w-[280px] sm:max-w-[420px] lg:max-w-lg aspect-square flex items-center justify-center z-10">
                     {/* Central Hub */}
                     <button
                         type="button"
                         onPointerDown={() => setSelectedAvatar(4)}
                         onClick={() => setSelectedAvatar(4)}
-                        className="absolute w-32 h-32 bg-white rounded-full shadow-2xl flex items-center justify-center z-50 border-4 border-brand-gold focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2 focus:ring-offset-black"
+                        className="absolute bg-white rounded-full shadow-2xl flex items-center justify-center z-50 border-4 border-brand-gold focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2 focus:ring-offset-black"
+                        style={{ width: `${hubSize}px`, height: `${hubSize}px` }}
                         aria-label="Open Lifewood Platform details"
                     >
-                        <img src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png?width=1519&height=429" alt="lifewood" className="w-24 h-24 object-contain" />
+                        <img
+                            src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png?width=1519&height=429"
+                            alt="lifewood"
+                            className="object-contain"
+                            style={{
+                                width: `${Math.round(hubSize * 0.75)}px`,
+                                height: `${Math.round(hubSize * 0.75)}px`
+                            }}
+                        />
                     </button>
                     
                     {/* Orbiting Elements - concentric circular wrappers with fixed radii (px) */}
@@ -218,10 +244,20 @@ const ProcessSlideshow: React.FC = () => {
                         const isOrbitPaused = selectedAvatar !== null;
 
                         // two rings with two avatars each, avatars placed opposite each other
-                        const rings = [
-                            { radius: 130, angles: [0, 180], items: [0, 1], offset: 0 },
-                            { radius: 220, angles: [90, 270], items: [2, 3], offset: 45 }
-                        ];
+                        const rings = isSmallOrbit
+                            ? [
+                                  { radius: 78, angles: [0, 180], items: [0, 1], offset: 0 },
+                                  { radius: 124, angles: [90, 270], items: [2, 3], offset: 45 }
+                              ]
+                            : isMediumOrbit
+                              ? [
+                                    { radius: 105, angles: [0, 180], items: [0, 1], offset: 0 },
+                                    { radius: 166, angles: [90, 270], items: [2, 3], offset: 45 }
+                                ]
+                              : [
+                                    { radius: 130, angles: [0, 180], items: [0, 1], offset: 0 },
+                                    { radius: 220, angles: [90, 270], items: [2, 3], offset: 45 }
+                                ];
 
                         return rings.map((ring, ridx) => {
                             const duration = 20 + ridx * 6;
@@ -271,8 +307,8 @@ const ProcessSlideshow: React.FC = () => {
                                                     position: 'absolute',
                                                     left: '50%',
                                                     top: '50%',
-                                                    width: '64px',
-                                                    height: '64px',
+                                                    width: `${avatarSize}px`,
+                                                    height: `${avatarSize}px`,
                                                     padding: 0,
                                                     border: '4px solid white',
                                                     borderRadius: '9999px',
@@ -399,7 +435,7 @@ export const AIServices: React.FC = () => {
     ];
 
     return (
-        <div className="bg-white dark:bg-brand-green min-h-screen pt-24 transition-colors duration-300">
+        <div className="bg-white dark:bg-brand-green min-h-screen pt-20 md:pt-24 transition-colors duration-300 dark:[&_h1]:text-white dark:[&_h2]:text-white dark:[&_h3]:text-white dark:[&_h4]:text-white dark:[&_p]:text-gray-200 dark:[&_blockquote]:text-gray-100">
             {/* Hero Section */}
             <section className="container mx-auto px-6 py-12 md:py-24">
                 <motion.div
@@ -408,7 +444,7 @@ export const AIServices: React.FC = () => {
                     viewport={{ once: false, margin: "-100px" }}
                     transition={{ duration: 0.6 }}
                 >
-                    <h1 className="text-5xl md:text-7xl font-bold mb-8 text-gray-900 dark:text-white tracking-tight overflow-hidden">
+                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-8 text-gray-900 dark:text-white tracking-tight overflow-hidden">
                         <motion.span
                             initial={{ opacity: 0, x: -50 }}
                             whileInView={{ opacity: 1, x: 0 }}
@@ -427,17 +463,15 @@ export const AIServices: React.FC = () => {
                         transition={{ duration: 0.8, delay: 0.4 }}
                         className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mb-8 leading-relaxed"
                     >
-                        Lifewood delivers end-to-end AI data solutions—from multi-language data collection and annotation to model training and generative AI content. Leveraging our global workforce, industrialized methodology, and proprietary LIFT platform.
+                        Lifewood delivers end-to-end AI data solutionsâ€”from multi-language data collection and annotation to model training and generative AI content. Leveraging our global workforce, industrialized methodology, and proprietary LIFT platform.
                     </motion.p>
                     
-                    <button className="bg-brand-gold hover:bg-yellow-500 text-black px-8 py-3 rounded-full font-medium flex items-center gap-2 transition-all hover:gap-4">
-                        Contact Us <ArrowRight size={18} />
-                    </button>
+                    <ContactUsButton />
                 </motion.div>
             </section>
 
             {/* Services Grid */}
-            <section className="container mx-auto px-6 py-16 md:py-24">
+            <section className="container mx-auto px-6 py-12 md:py-24">
                 <motion.div
                     initial={{ opacity: 0 }}
                     whileInView={{ opacity: 1 }}
@@ -461,7 +495,7 @@ export const AIServices: React.FC = () => {
             </section>
 
             {/* Video Section */}
-            <section className="container mx-auto px-6 py-16 md:py-24">
+            <section className="container mx-auto px-6 py-12 md:py-24">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     whileInView={{ opacity: 1, scale: 1 }}
@@ -482,7 +516,7 @@ export const AIServices: React.FC = () => {
             </section>
 
             {/* Why Choose Us */}
-            <section className="container mx-auto px-6 py-16 md:py-24 text-center">
+            <section className="container mx-auto px-6 py-12 md:py-24 text-center">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -490,7 +524,7 @@ export const AIServices: React.FC = () => {
                     transition={{ duration: 0.8 }}
                 >
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-4 block">Why brands trust us</span>
-                    <h2 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-4">
+                    <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-4">
                         Comprehensive<br />
                         <span className="font-light italic text-brand-gold dark:text-brand-gold">Data Solutions</span>
                     </h2>
@@ -498,16 +532,18 @@ export const AIServices: React.FC = () => {
                         We provide scalable, secure, and compliant data solutions that drive AI innovation across industries.
                     </p>
                     
-                    <button className="inline-flex items-center gap-2 text-gray-900 dark:text-white font-medium hover:gap-4 transition-all bg-gray-100 dark:bg-white/10 px-6 py-3 rounded-full">
+                    <Link to="/contact-us" className="inline-flex items-center gap-2 text-gray-900 dark:text-white font-medium hover:gap-4 transition-all bg-gray-100 dark:bg-white/10 px-6 py-3 rounded-full">
                         Get started <div className="bg-black dark:bg-white text-white dark:text-black p-2 rounded-full"><ArrowRight size={16} /></div>
-                    </button>
+                    </Link>
                 </motion.div>
             </section>
 
             {/* Process Section with Slideshow */}
-            <section className="container mx-auto px-6 py-16 md:py-24">
+            <section className="container mx-auto px-6 py-12 md:py-24">
                 <ProcessSlideshow />
             </section>
         </div>
     );
 };
+
+

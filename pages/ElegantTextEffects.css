@@ -1,0 +1,47 @@
+@keyframes elegantTextIn {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 14px, 0);
+        filter: blur(1px);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+        filter: blur(0);
+    }
+}
+
+.elegant-textfx :is(h1, h2, h3, h4, p, blockquote, li) {
+    animation: elegantTextIn 680ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition:
+        transform 240ms ease,
+        text-shadow 240ms ease,
+        letter-spacing 240ms ease,
+        color 240ms ease;
+    will-change: transform, text-shadow, letter-spacing, color;
+}
+
+.elegant-textfx section:nth-of-type(1) :is(h1, h2, h3, h4, p, blockquote, li) { animation-delay: 40ms; }
+.elegant-textfx section:nth-of-type(2) :is(h1, h2, h3, h4, p, blockquote, li) { animation-delay: 90ms; }
+.elegant-textfx section:nth-of-type(3) :is(h1, h2, h3, h4, p, blockquote, li) { animation-delay: 130ms; }
+.elegant-textfx section:nth-of-type(4) :is(h1, h2, h3, h4, p, blockquote, li) { animation-delay: 170ms; }
+.elegant-textfx section:nth-of-type(5) :is(h1, h2, h3, h4, p, blockquote, li) { animation-delay: 210ms; }
+.elegant-textfx section:nth-of-type(6) :is(h1, h2, h3, h4, p, blockquote, li) { animation-delay: 250ms; }
+
+.elegant-textfx :is(h1, h2, h3, h4, blockquote):hover {
+    transform: translateY(-2px);
+    letter-spacing: 0.006em;
+    text-shadow: 0 10px 22px rgba(15, 23, 42, 0.13);
+}
+
+.elegant-textfx :is(p, li):hover {
+    transform: translateY(-1px);
+    color: #25364e;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .elegant-textfx :is(h1, h2, h3, h4, p, blockquote, li) {
+        animation: none;
+        transition: none;
+    }
+}
