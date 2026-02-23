@@ -14,7 +14,7 @@ interface ServiceCardProps {
 const ServiceCard = ({ title, description, icon, features }: ServiceCardProps) => (
     <motion.div 
         whileHover={{ y: -8 }}
-        className="group bg-gradient-to-br from-white to-gray-50 dark:from-white/5 dark:to-white/10 p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-white/10 shadow-lg hover:shadow-2xl transition-all duration-300"
+        className="group h-full min-h-[355px] md:min-h-[375px] bg-gradient-to-br from-white to-gray-50 dark:from-white/5 dark:to-white/10 p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-white/10 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col"
     >
         <div className="flex items-start mb-4">
             <div className="p-3 rounded-xl bg-brand-gold/10 group-hover:bg-brand-gold/20 transition-colors">
@@ -22,8 +22,8 @@ const ServiceCard = ({ title, description, icon, features }: ServiceCardProps) =
             </div>
         </div>
         <h3 className="text-xl md:text-2xl font-bold mb-2 text-gray-900 dark:text-white">{title}</h3>
-        <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-4">{description}</p>
-        <div className="space-y-2">
+        <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed min-h-[3rem] mb-4">{description}</p>
+        <div className="space-y-2 mt-auto">
             {features.map((feature, idx) => (
                 <div key={idx} className="flex items-center gap-2 text-xs md:text-sm text-gray-700 dark:text-gray-300">
                     <div className="w-1 h-1 rounded-full bg-brand-gold flex-shrink-0"></div>
@@ -477,18 +477,30 @@ export const AIServices: React.FC = () => {
                     viewport={{ margin: "-100px" }}
                     transition={{ duration: 0.6 }}
                 >
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-4 md:mb-6">
-                        {services.map((service, index) => (
-                            <motion.div
-                                key={service.title}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ margin: "-100px" }}
-                                transition={{ duration: 0.4, delay: index * 0.1 }}
-                            >
-                                <ServiceCard {...service} />
-                            </motion.div>
-                        ))}
+                    <style>{`
+                        @keyframes ai-services-marquee {
+                            from { transform: translateX(0); }
+                            to { transform: translateX(-50%); }
+                        }
+                    `}</style>
+                    <div className="relative overflow-hidden mb-4 md:mb-6">
+                        <div
+                            className="flex gap-6 w-max"
+                            style={{ animation: 'ai-services-marquee 28s linear infinite' }}
+                        >
+                            {[...services, ...services].map((service, index) => (
+                                <motion.div
+                                    key={`${service.title}-${index}`}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ margin: "-100px" }}
+                                    transition={{ duration: 0.4, delay: (index % services.length) * 0.08 }}
+                                    className="w-[280px] sm:w-[300px] md:w-[320px] shrink-0"
+                                >
+                                    <ServiceCard {...service} />
+                                </motion.div>
+                            ))}
+                        </div>
                     </div>
                 </motion.div>
             </section>
