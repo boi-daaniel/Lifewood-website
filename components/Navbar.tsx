@@ -107,6 +107,7 @@ export const Navbar: React.FC = () => {
                 backgroundOpacity={0.2}
                 mixBlendMode="screen"
                 className="w-full border border-white/55 shadow-[0_12px_30px_-20px_rgba(10,20,18,0.45)]"
+                style={{ overflow: 'visible' }}
             >
                 <div className={`w-full flex items-center ${isCollapsed ? 'justify-between px-3 md:px-2 py-1.5' : 'justify-between px-3 md:px-5 py-1.5'}`}>
                     {/* Logo */}
@@ -149,30 +150,50 @@ export const Navbar: React.FC = () => {
                                     </button>
                                     
                                     {item.children && (
-                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 min-w-[11rem] w-max bg-white rounded-lg shadow-[0_10px_22px_-14px_rgba(15,23,42,0.45)] border border-gray-200/80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-1 group-hover:translate-y-0">
-                                            <div className="py-1">
-                                                {item.children.map((child) => (
-                                                    child.href.startsWith('/') ? (
-                                                        <Link
-                                                            key={child.label}
-                                                            to={child.href}
-                                                            className={`block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium hover:bg-gray-50 ${
-                                                                isPathActive(child.href) ? 'text-brand-green bg-gray-50' : 'text-gray-700 hover:text-brand-green'
-                                                            }`}
-                                                        >
-                                                            {child.label}
-                                                        </Link>
-                                                    ) : (
-                                                        <a
-                                                            key={child.label}
-                                                            href={child.href}
-                                                            className="block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-brand-green"
-                                                        >
-                                                            {child.label}
-                                                        </a>
-                                                    )
-                                                ))}
-                                            </div>
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 min-w-[11rem] w-max opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-1 group-hover:translate-y-0">
+                                            <GlassSurface
+                                                width="100%"
+                                                height="auto"
+                                                borderRadius={14}
+                                                borderWidth={0.06}
+                                                preferFallback
+                                                displace={0.12}
+                                                distortionScale={-40}
+                                                redOffset={0}
+                                                greenOffset={2}
+                                                blueOffset={4}
+                                                brightness={60}
+                                                opacity={0.94}
+                                                blur={10}
+                                                saturation={1.15}
+                                                backgroundOpacity={0.22}
+                                                mixBlendMode="normal"
+                                                className="rounded-[14px] border border-white/80 bg-white/70 backdrop-blur-xl ring-1 ring-black/10 shadow-[0_18px_35px_-20px_rgba(15,23,42,0.55)]"
+                                            >
+                                                <div className="py-1">
+                                                    {item.children.map((child) => (
+                                                        child.href.startsWith('/') ? (
+                                                            <Link
+                                                                key={child.label}
+                                                                to={child.href}
+                                                                className={`block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium ${
+                                                                    isPathActive(child.href) ? 'text-brand-green' : 'text-gray-800 hover:text-brand-green'
+                                                                }`}
+                                                            >
+                                                                {child.label}
+                                                            </Link>
+                                                        ) : (
+                                                            <a
+                                                                key={child.label}
+                                                                href={child.href}
+                                                                className="block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium text-gray-800 hover:text-brand-green"
+                                                            >
+                                                                {child.label}
+                                                            </a>
+                                                        )
+                                                    ))}
+                                                </div>
+                                            </GlassSurface>
                                         </div>
                                     )}
                                 </div>
