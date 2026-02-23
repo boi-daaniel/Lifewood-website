@@ -3,6 +3,7 @@ import { Menu, X, ChevronDown, Sun, Moon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { NavItem } from '../types';
+import GlassSurface from './GlassSurface';
 
 const navItems: NavItem[] = [
     { label: 'Home', href: '/' },
@@ -81,115 +82,134 @@ export const Navbar: React.FC = () => {
     return (
         <nav 
             className={`
-                fixed z-50 backdrop-blur-xl transition-[top,padding,width,max-width,border-radius,box-shadow,background-color,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
+                fixed z-50 transition-[top,padding,width,max-width,border-radius,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
                 ${
                     isCollapsed
-                        ? 'top-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[88%] md:max-w-[60rem] py-1.5 rounded-full border border-white/50 shadow-lg bg-white/95'
-                        : 'top-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[90%] md:max-w-6xl py-1.5 rounded-full border border-white/50 shadow-lg bg-white/95'
+                        ? 'top-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[88%] md:max-w-[60rem] rounded-full'
+                        : 'top-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[90%] md:max-w-6xl rounded-full'
                 }
             `}
         >
-            <div className={`w-full flex items-center ${isCollapsed ? 'justify-between px-3 md:px-2' : 'justify-between px-3 md:px-5'}`}>
-                {/* Logo */}
-                <Link to="/" className="flex items-center gap-2 shrink-0">
-                    <img 
-                        src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png?width=1519&height=429" 
-                        alt="Lifewood" 
-                        className="w-auto object-contain transition-all duration-300 h-7"
-                    />
-                </Link>
+            <GlassSurface
+                width="100%"
+                height="auto"
+                borderRadius={999}
+                borderWidth={0.05}
+                displace={0.42}
+                distortionScale={-170}
+                redOffset={0}
+                greenOffset={8}
+                blueOffset={16}
+                brightness={58}
+                opacity={0.95}
+                blur={9}
+                saturation={1.18}
+                backgroundOpacity={0.2}
+                mixBlendMode="screen"
+                className="w-full border border-white/55 shadow-[0_12px_30px_-20px_rgba(10,20,18,0.45)]"
+            >
+                <div className={`w-full flex items-center ${isCollapsed ? 'justify-between px-3 md:px-2 py-1.5' : 'justify-between px-3 md:px-5 py-1.5'}`}>
+                    {/* Logo */}
+                    <Link to="/" className="flex items-center gap-2 shrink-0">
+                        <img 
+                            src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png?width=1519&height=429" 
+                            alt="Lifewood" 
+                            className="w-auto object-contain transition-all duration-300 h-7"
+                        />
+                    </Link>
 
-                {/* Desktop Nav */}
-                <div className="hidden lg:flex items-center flex-nowrap transition-all duration-300 gap-1.5 flex-1 justify-center">
-                    {navItems.map((item) => {
-                        const active = isActive(item);
-                        return (
-                            <div key={item.label} className="relative group">
-                                <button 
-                                    className={`relative transition-colors flex items-center gap-1 ${
-                                        `px-0.5 py-0 text-[11px] font-medium whitespace-nowrap ${active ? 'text-brand-green font-semibold' : 'text-gray-700 hover:text-black'}`
-                                    }`}
-                                >
-                                    {active && (
-                                        <motion.div
-                                            layoutId="activeSection"
-                                            className="absolute inset-0 bg-brand-green/10 rounded-lg"
-                                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                                        />
-                                    )}
-                                    <span className="relative z-10 flex items-center gap-1 whitespace-nowrap">
-                                        {item.href.startsWith('/') ? (
-                                            <Link to={item.href}>{item.label}</Link>
-                                        ) : (
-                                            item.label
+                    {/* Desktop Nav */}
+                    <div className="hidden lg:flex items-center flex-nowrap transition-all duration-300 gap-1.5 flex-1 justify-center">
+                        {navItems.map((item) => {
+                            const active = isActive(item);
+                            return (
+                                <div key={item.label} className="relative group">
+                                    <button 
+                                        className={`relative transition-colors flex items-center gap-1 ${
+                                            `px-0.5 py-0 text-[11px] font-medium whitespace-nowrap ${active ? 'text-brand-green font-semibold' : 'text-gray-700 hover:text-black'}`
+                                        }`}
+                                    >
+                                        {active && (
+                                            <motion.div
+                                                layoutId="activeSection"
+                                                className="absolute inset-0 bg-brand-green/10 rounded-lg"
+                                                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                                            />
                                         )}
-                                        {item.children && (
-                                            <ChevronDown size={14} className="group-hover:rotate-180 transition-transform" />
-                                        )}
-                                    </span>
-                                </button>
-                                
-                                {item.children && (
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 min-w-[11rem] w-max bg-white rounded-lg shadow-[0_10px_22px_-14px_rgba(15,23,42,0.45)] border border-gray-200/80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-1 group-hover:translate-y-0">
-                                        <div className="py-1">
-                                            {item.children.map((child) => (
-                                                child.href.startsWith('/') ? (
-                                                    <Link
-                                                        key={child.label}
-                                                        to={child.href}
-                                                        className={`block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium hover:bg-gray-50 ${
-                                                            isPathActive(child.href) ? 'text-brand-green bg-gray-50' : 'text-gray-700 hover:text-brand-green'
-                                                        }`}
-                                                    >
-                                                        {child.label}
-                                                    </Link>
-                                                ) : (
-                                                    <a
-                                                        key={child.label}
-                                                        href={child.href}
-                                                        className="block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-brand-green"
-                                                    >
-                                                        {child.label}
-                                                    </a>
-                                                )
-                                            ))}
+                                        <span className="relative z-10 flex items-center gap-1 whitespace-nowrap">
+                                            {item.href.startsWith('/') ? (
+                                                <Link to={item.href}>{item.label}</Link>
+                                            ) : (
+                                                item.label
+                                            )}
+                                            {item.children && (
+                                                <ChevronDown size={14} className="group-hover:rotate-180 transition-transform" />
+                                            )}
+                                        </span>
+                                    </button>
+                                    
+                                    {item.children && (
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 min-w-[11rem] w-max bg-white rounded-lg shadow-[0_10px_22px_-14px_rgba(15,23,42,0.45)] border border-gray-200/80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-1 group-hover:translate-y-0">
+                                            <div className="py-1">
+                                                {item.children.map((child) => (
+                                                    child.href.startsWith('/') ? (
+                                                        <Link
+                                                            key={child.label}
+                                                            to={child.href}
+                                                            className={`block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium hover:bg-gray-50 ${
+                                                                isPathActive(child.href) ? 'text-brand-green bg-gray-50' : 'text-gray-700 hover:text-brand-green'
+                                                            }`}
+                                                        >
+                                                            {child.label}
+                                                        </Link>
+                                                    ) : (
+                                                        <a
+                                                            key={child.label}
+                                                            href={child.href}
+                                                            className="block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-brand-green"
+                                                        >
+                                                            {child.label}
+                                                        </a>
+                                                    )
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
 
-                {/* Desktop Theme Toggle */}
-                <div className="hidden lg:flex items-center shrink-0">
-                    <button
-                        onClick={toggleTheme}
-                        className="rounded-full text-brand-green hover:bg-green-50 transition-colors p-1"
-                        aria-label="Toggle Theme"
-                        title="Switch Theme"
-                    >
-                        {isGreenMode ? <Sun size={16} /> : <Moon size={16} />}
-                    </button>
-                </div>
+                    {/* Desktop Theme Toggle */}
+                    <div className="hidden lg:flex items-center shrink-0">
+                        <button
+                            onClick={toggleTheme}
+                            className="rounded-full text-brand-green hover:bg-green-50 transition-colors p-1"
+                            aria-label="Toggle Theme"
+                            title="Switch Theme"
+                        >
+                            {isGreenMode ? <Sun size={16} /> : <Moon size={16} />}
+                        </button>
+                    </div>
 
-                {/* Mobile Menu Button */}
-                <div className="lg:hidden flex items-center gap-2">
-                    <button
-                        onClick={toggleTheme}
-                        className="p-2 text-brand-green"
-                        aria-label="Toggle Theme"
-                    >
-                        {isGreenMode ? <Sun size={20} /> : <Moon size={20} />}
-                    </button>
-                    <button 
-                        onClick={() => setIsOpen(!isOpen)}
-                        className="p-2 text-gray-800"
-                    >
-                        {isOpen ? <X size={24} /> : <Menu size={24} />}
-                    </button>
+                    {/* Mobile Menu Button */}
+                    <div className="lg:hidden flex items-center gap-2">
+                        <button
+                            onClick={toggleTheme}
+                            className="p-2 text-brand-green"
+                            aria-label="Toggle Theme"
+                        >
+                            {isGreenMode ? <Sun size={20} /> : <Moon size={20} />}
+                        </button>
+                        <button 
+                            onClick={() => setIsOpen(!isOpen)}
+                            className="p-2 text-gray-800"
+                        >
+                            {isOpen ? <X size={24} /> : <Menu size={24} />}
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </GlassSurface>
 
             {/* Mobile Menu Overlay */}
             {isOpen && (

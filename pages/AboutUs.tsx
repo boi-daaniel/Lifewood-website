@@ -197,31 +197,36 @@ export const AboutUs: React.FC = () => {
                 </div>
             </section>
 
-            <section className="container mx-auto px-6 mt-24" id="about-gallery">
+            <section className="container mx-auto px-6 mt-10 md:mt-14 mb-14 md:mb-20" id="about-gallery">
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.45 }}
                 >
-                    <ThreeDImageCarousel images={galleryImages} />
+                    <ThreeDImageCarousel
+                        images={galleryImages}
+                        autoRotateMs={7000}
+                        centerOverlayClassName="text-center"
+                        centerOverlay={
+                            <>
+                                <div className="mx-auto h-14 w-[210px] md:w-[250px]">
+                                    <img
+                                        src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png?width=1519&height=429"
+                                        alt="Lifewood"
+                                        className="h-full w-full object-contain dark:hidden"
+                                    />
+                                    <img
+                                        src="https://framerusercontent.com/images/Ca8ppNsvJIfTsWEuHr50gvkDow.png?scale-down-to=512&width=2624&height=474"
+                                        alt="Lifewood"
+                                        className="hidden h-full w-full object-contain dark:block scale-[0.8] origin-center"
+                                    />
+                                </div>
+                                <p className="text-sm text-gray-600 mt-1">Be Amazed</p>
+                            </>
+                        }
+                    />
                 </motion.div>
-
-                <div className="text-center mt-10">
-                    <div className="mx-auto h-16 w-[220px] md:w-[260px]">
-                        <img
-                            src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png?width=1519&height=429"
-                            alt="Lifewood"
-                            className="h-full w-full object-contain dark:hidden"
-                        />
-                        <img
-                            src="https://framerusercontent.com/images/Ca8ppNsvJIfTsWEuHr50gvkDow.png?scale-down-to=512&width=2624&height=474"
-                            alt="Lifewood"
-                            className="hidden h-full w-full object-contain dark:block scale-[0.8] origin-center"
-                        />
-                    </div>
-                    <p className="text-sm text-gray-600 mt-2">Be Amazed</p>
-                </div>
             </section>
         </div>
     );
