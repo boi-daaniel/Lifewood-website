@@ -16,11 +16,10 @@ const ServiceCard = ({ title, description, icon, features }: ServiceCardProps) =
         whileHover={{ y: -8 }}
         className="group bg-gradient-to-br from-white to-gray-50 dark:from-white/5 dark:to-white/10 p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-white/10 shadow-lg hover:shadow-2xl transition-all duration-300"
     >
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start mb-4">
             <div className="p-3 rounded-xl bg-brand-gold/10 group-hover:bg-brand-gold/20 transition-colors">
                 {icon}
             </div>
-            <ArrowRight className="opacity-0 group-hover:opacity-100 text-brand-gold transition-opacity" size={20} />
         </div>
         <h3 className="text-xl md:text-2xl font-bold mb-2 text-gray-900 dark:text-white">{title}</h3>
         <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-4">{description}</p>
@@ -437,7 +436,7 @@ export const AIServices: React.FC = () => {
     return (
         <div className="bg-white dark:bg-brand-green min-h-screen pt-20 md:pt-24 transition-colors duration-300 dark:[&_h1]:text-white dark:[&_h2]:text-white dark:[&_h3]:text-white dark:[&_h4]:text-white dark:[&_p]:text-gray-200 dark:[&_blockquote]:text-gray-100">
             {/* Hero Section */}
-            <section className="container mx-auto px-6 py-12 md:py-24">
+            <section className="container mx-auto px-6 pt-2 md:pt-4 pb-12 md:pb-20">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -478,7 +477,7 @@ export const AIServices: React.FC = () => {
                     viewport={{ margin: "-100px" }}
                     transition={{ duration: 0.6 }}
                 >
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-4 md:mb-6">
                         {services.map((service, index) => (
                             <motion.div
                                 key={service.title}
@@ -495,13 +494,13 @@ export const AIServices: React.FC = () => {
             </section>
 
             {/* Video Section */}
-            <section className="container mx-auto px-6 py-12 md:py-24">
+            <section className="container mx-auto px-6 pt-10 md:pt-14 pb-8 md:pb-12">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ margin: "-100px" }}
                     transition={{ duration: 0.6 }}
-                    className="relative rounded-3xl overflow-hidden aspect-video bg-gray-900 shadow-2xl"
+                    className="relative mx-auto w-full max-w-4xl rounded-3xl overflow-hidden aspect-video bg-gray-900 shadow-2xl"
                 >
                     <iframe
                         className="w-full h-full"

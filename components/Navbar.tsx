@@ -95,18 +95,18 @@ export const Navbar: React.FC = () => {
                 height="auto"
                 borderRadius={999}
                 borderWidth={0.05}
-                displace={0.42}
-                distortionScale={-170}
+                displace={0.22}
+                distortionScale={-90}
                 redOffset={0}
-                greenOffset={8}
-                blueOffset={16}
-                brightness={58}
-                opacity={0.95}
-                blur={9}
-                saturation={1.18}
-                backgroundOpacity={0.2}
-                mixBlendMode="screen"
-                className="w-full border border-white/55 shadow-[0_12px_30px_-20px_rgba(10,20,18,0.45)]"
+                greenOffset={4}
+                blueOffset={8}
+                brightness={64}
+                opacity={0.98}
+                blur={10}
+                saturation={1.06}
+                backgroundOpacity={0.74}
+                mixBlendMode="normal"
+                className="w-full border border-white/90 bg-white/85 ring-1 ring-black/8 shadow-[0_14px_30px_-18px_rgba(8,20,18,0.42)]"
                 style={{ overflow: 'visible' }}
             >
                 <div className={`w-full flex items-center ${isCollapsed ? 'justify-between px-3 md:px-2 py-1.5' : 'justify-between px-3 md:px-5 py-1.5'}`}>
@@ -150,7 +150,7 @@ export const Navbar: React.FC = () => {
                                     </button>
                                     
                                     {item.children && (
-                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 min-w-[11rem] w-max opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-1 group-hover:translate-y-0">
+                                        <div className="absolute z-[120] top-full left-1/2 -translate-x-1/2 mt-1.5 min-w-[11rem] w-max opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-1 group-hover:translate-y-0">
                                             <GlassSurface
                                                 width="100%"
                                                 height="auto"
@@ -162,13 +162,18 @@ export const Navbar: React.FC = () => {
                                                 redOffset={0}
                                                 greenOffset={2}
                                                 blueOffset={4}
-                                                brightness={60}
-                                                opacity={0.94}
+                                                brightness={70}
+                                                opacity={1}
                                                 blur={10}
-                                                saturation={1.15}
-                                                backgroundOpacity={0.22}
+                                                saturation={1.02}
+                                                backgroundOpacity={0.9}
                                                 mixBlendMode="normal"
-                                                className="rounded-[14px] border border-white/80 bg-white/70 backdrop-blur-xl ring-1 ring-black/10 shadow-[0_18px_35px_-20px_rgba(15,23,42,0.55)]"
+                                                className="rounded-[14px] border border-white bg-white/95 backdrop-blur-xl ring-1 ring-black/12 shadow-[0_18px_35px_-20px_rgba(15,23,42,0.6)]"
+                                                style={{
+                                                    background: 'rgba(255,255,255,0.95)',
+                                                    backdropFilter: 'blur(14px) saturate(1.05)',
+                                                    WebkitBackdropFilter: 'blur(14px) saturate(1.05)'
+                                                }}
                                             >
                                                 <div className="py-1">
                                                     {item.children.map((child) => (
@@ -177,7 +182,7 @@ export const Navbar: React.FC = () => {
                                                                 key={child.label}
                                                                 to={child.href}
                                                                 className={`block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium ${
-                                                                    isPathActive(child.href) ? 'text-brand-green' : 'text-gray-800 hover:text-brand-green'
+                                                                    isPathActive(child.href) ? 'text-brand-green' : 'text-gray-900 hover:text-brand-green'
                                                                 }`}
                                                             >
                                                                 {child.label}
@@ -186,7 +191,7 @@ export const Navbar: React.FC = () => {
                                                             <a
                                                                 key={child.label}
                                                                 href={child.href}
-                                                                className="block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium text-gray-800 hover:text-brand-green"
+                                                                className="block whitespace-nowrap px-3 py-1.5 text-[11px] font-medium text-gray-900 hover:text-brand-green"
                                                             >
                                                                 {child.label}
                                                             </a>

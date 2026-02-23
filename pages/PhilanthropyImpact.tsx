@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import ScrollStack, { ScrollStackItem } from '../components/ScrollStack';
-import Aurora from '../components/Aurora';
 import ScrollFloat from '../components/ScrollFloat';
 import { ContactUsButton } from '../components/ContactUsButton';
 import './ElegantTextEffects.css';
@@ -142,14 +141,16 @@ const FadeImageSection: React.FC = () => {
     const imageUrl = 'https://framerusercontent.com/images/7RZ9ESz7UTTmxn6ifh8I9jHlHA.png?width=1004&height=591';
 
     return (
-        <section ref={sectionRef} className="relative mt-10 h-[115vh] md:h-[150vh]">
+        <section ref={sectionRef} className="relative mt-10 h-[82vh] md:h-[98vh]">
             <div className="sticky top-16 md:top-20 h-[58vh] md:h-[75vh] flex items-center justify-center">
-                <motion.img
-                    src={imageUrl}
-                    alt="People helping each other"
-                    style={{ opacity: fade, scale: zoom, y: rise }}
-                    className="w-full max-h-full object-contain object-center rounded-[1.75rem]"
-                />
+                <div className="w-full overflow-hidden rounded-[2rem] shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)]">
+                    <motion.img
+                        src={imageUrl}
+                        alt="People helping each other"
+                        style={{ opacity: fade, scale: zoom, y: rise }}
+                        className="w-full h-[58vh] md:h-[75vh] object-cover object-center"
+                    />
+                </div>
             </div>
         </section>
     );
@@ -433,17 +434,6 @@ export const PhilanthropyImpact: React.FC = () => {
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="elegant-textfx relative overflow-hidden bg-[#f3f3f3] dark:bg-brand-green min-h-screen pt-20 md:pt-24 pb-24 transition-colors duration-300 dark:[&_h1]:text-white dark:[&_h2]:text-white dark:[&_h3]:text-white dark:[&_h4]:text-white dark:[&_p]:text-gray-200 dark:[&_blockquote]:text-gray-100"
         >
-            <div className="pointer-events-none absolute inset-0 z-0 opacity-40">
-                <div className="h-full w-full" style={{ maskImage: 'linear-gradient(180deg, #000 0%, #000 70%, transparent 100%)' }}>
-                    <Aurora
-                        colorStops={['#7cff67', '#B19EEF', '#ffb347']}
-                        blend={0.5}
-                        amplitude={1.0}
-                        speed={1}
-                    />
-                </div>
-            </div>
-
             <div className="relative z-10">
             <section className="container mx-auto px-6 min-h-[280px] md:min-h-[340px]">
                 <motion.div
