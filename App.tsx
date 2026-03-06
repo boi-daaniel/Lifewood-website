@@ -20,6 +20,7 @@ import { PhilanthropyImpact } from './pages/PhilanthropyImpact';
 import { Careers } from './pages/Careers';
 import { ContactUs } from './pages/ContactUs';
 import { InternalNews } from './pages/InternalNews';
+import { Login } from './pages/Login';
 import { TermsAndConditions } from './pages/TermsAndConditions';
 import { SupportChatbot } from './components/SupportChatbot';
 import GradualBlur from './components/GradualBlur';
@@ -116,6 +117,7 @@ function AnimatedRoutes() {
           <Route path="/careers" element={<Careers />} />
           <Route path="/contact-us" element={<ContactUs />} />
           <Route path="/internal-news" element={<InternalNews />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
           <Route path="/what-we-offer/type-a" element={<WhatWeOfferTypeA />} />
           <Route path="/what-we-offer/type-b" element={<WhatWeOfferTypeB />} />

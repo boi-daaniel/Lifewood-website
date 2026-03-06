@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, ChevronDown, Sun, Moon } from 'lucide-react';
+import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { NavItem } from '../types';
@@ -42,7 +42,6 @@ const navItems: NavItem[] = [
 export const Navbar: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [isGreenMode, setIsGreenMode] = useState(false);
     const location = useLocation();
 
     useEffect(() => {
@@ -72,11 +71,6 @@ export const Navbar: React.FC = () => {
     const isActive = (item: NavItem) => {
         if (isPathActive(item.href)) return true;
         return item.children?.some((child) => isPathActive(child.href)) ?? false;
-    };
-
-    const toggleTheme = () => {
-        setIsGreenMode(!isGreenMode);
-        document.documentElement.classList.toggle('dark');
     };
 
     return (
@@ -206,27 +200,26 @@ export const Navbar: React.FC = () => {
                         })}
                     </div>
 
-                    {/* Desktop Theme Toggle */}
+                    {/* Desktop Login Button */}
                     <div className="hidden lg:flex items-center shrink-0">
-                        <button
-                            onClick={toggleTheme}
-                            className="rounded-full text-brand-green hover:bg-green-50 transition-colors p-1"
-                            aria-label="Toggle Theme"
-                            title="Switch Theme"
+                        <Link
+                            to="/login"
+                            className="rounded-full bg-brand-green hover:bg-green-900 transition-colors px-4 py-2 text-white text-xs font-semibold"
+                            aria-label="Log in"
                         >
-                            {isGreenMode ? <Sun size={16} /> : <Moon size={16} />}
-                        </button>
+                            Log in
+                        </Link>
                     </div>
 
                     {/* Mobile Menu Button */}
                     <div className="lg:hidden flex items-center gap-2">
-                        <button
-                            onClick={toggleTheme}
-                            className="p-2 text-brand-green"
-                            aria-label="Toggle Theme"
+                        <Link
+                            to="/login"
+                            className="rounded-full bg-brand-green px-3 py-1.5 text-white text-xs font-semibold"
+                            aria-label="Log in"
                         >
-                            {isGreenMode ? <Sun size={20} /> : <Moon size={20} />}
-                        </button>
+                            Log in
+                        </Link>
                         <button 
                             onClick={() => setIsOpen(!isOpen)}
                             className="p-2 text-gray-800"
