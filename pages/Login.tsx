@@ -123,17 +123,17 @@ export const Login: React.FC = () => {
                         </form>
                     </div>
 
-                    <div className="relative min-h-[340px] overflow-hidden rounded-[1.7rem] border border-white/10 bg-[#e7e7ea] p-4 md:p-5 lg:min-h-[700px]">
-                        <div className="pointer-events-none absolute inset-0">
+                    <div className="relative min-h-[340px] overflow-hidden rounded-[1.7rem] border border-white/10 bg-[#171a26] p-4 md:p-5 lg:min-h-[700px]">
+                        <div className="pointer-events-none absolute inset-0 rounded-[1.7rem] overflow-hidden">
                             <DarkVeil
-                                hueShift={0}
-                                noiseIntensity={0}
-                                scanlineIntensity={0}
+                                hueShift={210}
+                                noiseIntensity={0.04}
+                                scanlineIntensity={0.03}
                                 speed={0.5}
-                                scanlineFrequency={0}
-                                warpAmount={0}
+                                scanlineFrequency={1.4}
+                                warpAmount={0.14}
                             />
-                            <div className="absolute inset-0 bg-white/12" />
+                            <div className="absolute inset-0 bg-black/22" />
                         </div>
 
                         <div className="relative z-10 grid h-full auto-rows-[minmax(90px,auto)] grid-cols-1 gap-3 md:grid-cols-6">
@@ -141,14 +141,14 @@ export const Login: React.FC = () => {
                                 <div className="h-14 w-full rounded-2xl bg-white/10" />
                             </div>
 
-                            <div className="md:col-span-4 rounded-3xl bg-[#ececef]/85 p-5 shadow-[0_16px_30px_rgba(30,30,40,0.12)] backdrop-blur-sm">
+                            <div className="md:col-span-4 rounded-3xl bg-[#ececef]/72 p-5 shadow-[0_16px_30px_rgba(30,30,40,0.12)] backdrop-blur-sm">
                                 <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#b7f8d6] text-[#e69500] shadow-[0_8px_18px_rgba(18,18,18,0.2)]">
                                     <Sparkles size={18} />
                                 </div>
                                 <p className="mt-4 text-sm text-gray-500">Harness the power of AI for cutting-edge 3D creations.</p>
                             </div>
 
-                            <div className="md:col-span-2 rounded-3xl bg-[#d7d7de]/85 p-5 shadow-[0_16px_30px_rgba(30,30,40,0.12)]">
+                            <div className="md:col-span-2 rounded-3xl bg-[#d7d7de]/70 p-5 shadow-[0_16px_30px_rgba(30,30,40,0.12)] backdrop-blur-sm">
                                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Secure Access</p>
                                 <p className="mt-3 text-3xl font-bold text-[#11131a]">24/7</p>
                                 <p className="mt-1 text-sm text-gray-600">Protected login flow</p>
@@ -159,7 +159,7 @@ export const Login: React.FC = () => {
                                 <p className="mt-1 text-sm text-black/60">Intuitive platform for everyone.</p>
                             </div>
 
-                            <div className="md:col-span-3 rounded-3xl bg-[#a1a1a4] px-5 py-6 text-white/80 shadow-[0_16px_30px_rgba(25,25,29,0.24)]">
+                            <div className="md:col-span-3 rounded-3xl bg-[#a1a1a4]/78 px-5 py-6 text-white/80 shadow-[0_16px_30px_rgba(25,25,29,0.24)] backdrop-blur-sm">
                                 <p className="text-xs uppercase tracking-wide text-white/70">Quick Start</p>
                                 <p className="mt-3 text-lg font-semibold text-white">Launch in minutes</p>
                                 <p className="mt-1 text-sm text-white/70">Simple setup and guided onboarding.</p>
@@ -167,7 +167,7 @@ export const Login: React.FC = () => {
 
                             <button
                                 type="button"
-                                className="group md:col-span-6 flex items-center justify-between rounded-3xl bg-[#8f8f93] px-5 py-5 text-left text-white/80 transition-colors hover:bg-[#848488]"
+                                className="group md:col-span-6 flex items-center justify-between rounded-3xl bg-[#8f8f93]/78 px-5 py-5 text-left text-white/80 transition-colors hover:bg-[#848488]/90 backdrop-blur-sm"
                             >
                                 <span className="text-sm">Join the future</span>
                                 <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/30 transition-transform group-hover:translate-x-0.5">
