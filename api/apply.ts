@@ -29,7 +29,7 @@ export default async function handler(req: { method?: string; body?: any }, res:
     const resendFrom = process.env.RESEND_FROM;
     const resendTo = process.env.RESEND_TO;
 
-    if (!resendApiKey || !resendFrom || !resendTo) {
+    if (!resendApiKey || !resendFrom) {
         res.status(500).json({ error: 'Email service not configured.' });
         return;
     }
@@ -41,21 +41,30 @@ export default async function handler(req: { method?: string; body?: any }, res:
     const safeContact = escapeHtml(contactNumber);
     const safeCountry = escapeHtml(country);
 
-    try {
-        await resend.emails.send({
-            from: resendFrom,
-            to: resendTo,
-            subject: `New application: ${position} (${name})`,
-            html: `
-                <h2>New Career Application</h2>
-                <p><strong>Name:</strong> ${safeName}</p>
-                <p><strong>Email:</strong> ${safeEmail}</p>
-                <p><strong>Position:</strong> ${safePosition}</p>
-                ${safeContact ? `<p><strong>Contact:</strong> ${safeContact}</p>` : ''}
-                ${safeCountry ? `<p><strong>Country:</strong> ${safeCountry}</p>` : ''}
-            `
-        });
+    let adminSendError: string | null = null;
+    const canSendAdmin = Boolean(resendTo && resendTo.trim().length > 0);
 
+    try {
+        if (canSendAdmin) {
+            await resend.emails.send({
+                from: resendFrom,
+                to: resendTo as string,
+                subject: `New application: ${position} (${name})`,
+                html: `
+                    <h2>New Career Application</h2>
+                    <p><strong>Name:</strong> ${safeName}</p>
+                    <p><strong>Email:</strong> ${safeEmail}</p>
+                    <p><strong>Position:</strong> ${safePosition}</p>
+                    ${safeContact ? `<p><strong>Contact:</strong> ${safeContact}</p>` : ''}
+                    ${safeCountry ? `<p><strong>Country:</strong> ${safeCountry}</p>` : ''}
+                `
+            });
+        }
+    } catch (error) {
+        adminSendError = error instanceof Error ? error.message : 'Failed to notify admin.';
+    }
+
+    try {
         const thankYouHtml = `
             <div style="font-family: Arial, sans-serif; color: #1f2b2a; background: #ffffff; padding: 24px;">
                 <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 28px;">
@@ -90,7 +99,7 @@ export default async function handler(req: { method?: string; body?: any }, res:
             text: `Dear ${name},\n\nThank you for applying to Lifewood. We have received your application for ${position}.\n\nOur team will review your submission and get back to you as soon as possible.\n\nBest regards,\nLifewood`
         });
 
-        res.status(200).json({ ok: true });
+        res.status(200).json({ ok: true, adminNotified: canSendAdmin && !adminSendError, adminSendError });
     } catch (error) {
         res.status(500).json({ error: 'Failed to send application email.' });
     }
