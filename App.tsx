@@ -1,8 +1,9 @@
 import React, { useEffect, useLayoutEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Lenis from 'lenis';
 import { Navbar } from './components/Navbar';
+import { RequireAdmin } from './components/RequireAdmin';
 import { Hero } from './components/Hero';
 import { About } from './components/About';
 import { GlobalReach } from './components/GlobalReach';
@@ -21,6 +22,9 @@ import { Careers } from './pages/Careers';
 import { ContactUs } from './pages/ContactUs';
 import { InternalNews } from './pages/InternalNews';
 import { Login } from './pages/Login';
+import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminInbox } from './pages/AdminInbox';
+import { AdminApplicants } from './pages/AdminApplicants';
 import { TermsAndConditions } from './pages/TermsAndConditions';
 import { SupportChatbot } from './components/SupportChatbot';
 import GradualBlur from './components/GradualBlur';
@@ -117,7 +121,14 @@ function AnimatedRoutes() {
           <Route path="/careers" element={<Careers />} />
           <Route path="/contact-us" element={<ContactUs />} />
           <Route path="/internal-news" element={<InternalNews />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/admin/login" element={<Login />} />
+          <Route path="/admin/*" element={<RequireAdmin />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="inbox" element={<AdminInbox />} />
+            <Route path="applicants" element={<AdminApplicants />} />
+            <Route path="*" element={<Navigate to="dashboard" replace />} />
+          </Route>
           <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
           <Route path="/what-we-offer/type-a" element={<WhatWeOfferTypeA />} />
           <Route path="/what-we-offer/type-b" element={<WhatWeOfferTypeB />} />
@@ -134,10 +145,23 @@ function App() {
     <Router>
       <GlobalSmoothScroll />
       <ScrollToTop />
-      <div className="min-h-screen font-sans text-gray-900 dark:text-white selection:bg-brand-gold selection:text-white transition-colors duration-300">
-        <Navbar />
-        <AnimatedRoutes />
-        <Footer />
+      <AppShell />
+    </Router>
+  );
+}
+
+export default App;
+
+function AppShell() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  return (
+    <div className="min-h-screen font-sans text-gray-900 dark:text-white selection:bg-brand-gold selection:text-white transition-colors duration-300">
+      {!isAdminRoute && <Navbar />}
+      <AnimatedRoutes />
+      {!isAdminRoute && <Footer />}
+      {!isAdminRoute && (
         <GradualBlur
           target="page"
           position="bottom"
@@ -149,10 +173,8 @@ function App() {
           opacity={1}
           zIndex={5}
         />
-        <SupportChatbot />
-      </div>
-    </Router>
+      )}
+      {!isAdminRoute && <SupportChatbot />}
+    </div>
   );
 }
-
-export default App;

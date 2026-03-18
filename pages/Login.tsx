@@ -1,25 +1,82 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Ban, Eye, EyeOff, Github, Sparkles } from 'lucide-react';
 import DarkVeil from '../components/DarkVeil';
+import { supabase } from '../lib/supabaseClient';
 
 export const Login: React.FC = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [identifier, setIdentifier] = useState('test1');
-    const [password, setPassword] = useState('secret');
+    const [identifier, setIdentifier] = useState('');
+    const [password, setPassword] = useState('');
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!isSubmitting) return;
-        const timer = window.setTimeout(() => setIsSubmitting(false), 1600);
-        return () => window.clearTimeout(timer);
-    }, [isSubmitting]);
+    const normalizeEmail = (value: string) => {
+        const trimmed = value.trim();
+        if (trimmed.includes('@')) return trimmed;
+        const adminDomain = (import.meta.env.VITE_ADMIN_EMAIL_DOMAIN as string | undefined) ?? 'lifewood.local';
+        return `${trimmed}@${adminDomain}`;
+    };
 
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!identifier.trim() || !password.trim()) return;
+        setErrorMessage(null);
+        setSuccessMessage(null);
+        const from =
+            (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ??
+            '/admin/dashboard';
+
+        if (!supabase) {
+            setErrorMessage('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+            return;
+        }
+
+        if (!identifier.trim() || !password.trim()) {
+            setErrorMessage('Please enter your username (or email) and password.');
+            return;
+        }
+
         setIsSubmitting(true);
+        try {
+            const email = normalizeEmail(identifier);
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                setErrorMessage(error.message);
+            } else {
+                const userId = data.user?.id;
+                if (!userId) {
+                    setErrorMessage('Unable to verify admin session.');
+                    return;
+                }
+
+                const { data: adminProfile, error: adminError } = await supabase
+                    .from('admin_profiles')
+                    .select('id')
+                    .eq('id', userId)
+                    .maybeSingle();
+
+                if (adminError || !adminProfile) {
+                    await supabase.auth.signOut();
+                    setErrorMessage('This account is not granted admin access yet.');
+                    return;
+                }
+
+                setSuccessMessage('Signed in successfully.');
+                navigate(from, { replace: true });
+            }
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : 'Failed to sign in.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -80,6 +137,7 @@ export const Login: React.FC = () => {
                                     type="text"
                                     value={identifier}
                                     onChange={(event) => setIdentifier(event.target.value)}
+                                    autoComplete="username"
                                     className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none transition focus:border-white/30"
                                 />
                             </div>
@@ -99,6 +157,7 @@ export const Login: React.FC = () => {
                                         type={showPassword ? 'text' : 'password'}
                                         value={password}
                                         onChange={(event) => setPassword(event.target.value)}
+                                        autoComplete="current-password"
                                         className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 pr-11 text-sm text-white outline-none transition focus:border-white/30"
                                     />
                                     <button
@@ -112,10 +171,29 @@ export const Login: React.FC = () => {
                                 </div>
                             </div>
 
+                            {(errorMessage || successMessage) && (
+                                <div
+                                    role="status"
+                                    className={`rounded-xl border px-3 py-2 text-xs ${
+                                        errorMessage
+                                            ? 'border-red-500/40 bg-red-500/10 text-red-200'
+                                            : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+                                    }`}
+                                >
+                                    {errorMessage ?? successMessage}
+                                </div>
+                            )}
+
+                            {!supabase && !errorMessage && (
+                                <div className="rounded-xl border border-amber-300/40 bg-amber-200/10 px-3 py-2 text-xs text-amber-100">
+                                    Supabase is not configured yet. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` then refresh.
+                                </div>
+                            )}
+
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#a8adb3] text-sm font-semibold text-[#0b0b0b] transition-colors enabled:hover:bg-[#b6bbc1] disabled:cursor-not-allowed"
+                                className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#a8adb3] text-sm font-semibold text-[#0b0b0b] transition-colors enabled:hover:bg-[#b6bbc1] disabled:cursor-not-allowed disabled:opacity-70"
                             >
                                 {isSubmitting ? 'Signing In...' : 'Sign In'}
                                 {isSubmitting && <Ban size={15} className="text-red-600" />}

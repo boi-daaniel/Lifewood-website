@@ -1,6 +1,50 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export const ContactUs: React.FC = () => {
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [message, setMessage] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setStatus(null);
+
+        if (!name.trim() || !email.trim() || !message.trim()) {
+            setStatus({ type: 'error', message: 'Please fill out all fields before sending.' });
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await fetch('/api/contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, email, message })
+            });
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => null);
+                throw new Error(payload?.error || 'Failed to send your message.');
+            }
+
+            setStatus({ type: 'success', message: 'Thanks for contacting us. We will get back to you as soon as possible.' });
+            setName('');
+            setEmail('');
+            setMessage('');
+        } catch (error) {
+            setStatus({
+                type: 'error',
+                message: error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <div className="bg-[#f3f3f3] dark:bg-brand-green min-h-screen pt-20 md:pt-24 pb-24 transition-colors duration-300 dark:[&_h1]:text-white dark:[&_h2]:text-white dark:[&_h3]:text-white dark:[&_h4]:text-white dark:[&_p]:text-gray-200 dark:[&_blockquote]:text-gray-100">
             <section className="container mx-auto px-6 mt-8">
@@ -31,13 +75,19 @@ export const ContactUs: React.FC = () => {
                             }}
                         />
 
-                        <form className="relative z-10 rounded-[1rem] border border-white/10 bg-white/10 backdrop-blur-sm p-4 md:p-5 h-full min-h-[330px] flex flex-col">
+                        <form
+                            onSubmit={handleSubmit}
+                            className="relative z-10 rounded-[1rem] border border-white/10 bg-white/10 backdrop-blur-sm p-4 md:p-5 h-full min-h-[330px] flex flex-col"
+                        >
                             <div className="space-y-4 flex-1 min-h-0">
                                 <div className="space-y-1.5">
                                     <label htmlFor="contact-name" className="text-white/90 font-medium">Name</label>
                                     <input
                                         id="contact-name"
                                         type="text"
+                                        value={name}
+                                        onChange={(event) => setName(event.target.value)}
+                                        required
                                         className="w-full h-11 rounded-lg bg-black/20 text-white placeholder:text-white/45 px-4 outline-none border border-white/5 focus:border-white/20"
                                     />
                                 </div>
@@ -47,6 +97,9 @@ export const ContactUs: React.FC = () => {
                                     <input
                                         id="contact-email"
                                         type="email"
+                                        value={email}
+                                        onChange={(event) => setEmail(event.target.value)}
+                                        required
                                         className="w-full h-11 rounded-lg bg-black/20 text-white placeholder:text-white/45 px-4 outline-none border border-white/5 focus:border-white/20"
                                     />
                                 </div>
@@ -56,16 +109,32 @@ export const ContactUs: React.FC = () => {
                                     <textarea
                                         id="contact-message"
                                         placeholder="Message here..."
+                                        value={message}
+                                        onChange={(event) => setMessage(event.target.value)}
+                                        required
                                         className="w-full h-full min-h-[100px] rounded-lg bg-black/20 text-white placeholder:text-white/45 px-4 py-3 outline-none border border-white/5 focus:border-white/20 resize-none"
                                     />
                                 </div>
                             </div>
 
+                            {status && (
+                                <div
+                                    className={`mt-3 rounded-lg border px-3 py-2 text-xs ${
+                                        status.type === 'success'
+                                            ? 'border-emerald-300/40 bg-emerald-200/10 text-emerald-100'
+                                            : 'border-red-300/40 bg-red-200/10 text-red-100'
+                                    }`}
+                                >
+                                    {status.message}
+                                </div>
+                            )}
+
                             <button
-                                type="button"
-                                className="w-full h-11 rounded-full bg-[#0a2f22] hover:bg-[#0d3b2b] text-white font-semibold transition-colors mt-4"
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="w-full h-11 rounded-full bg-[#0a2f22] hover:bg-[#0d3b2b] text-white font-semibold transition-colors mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                Send Message
+                                {isSubmitting ? 'Sending...' : 'Send Message'}
                             </button>
                         </form>
                     </div>

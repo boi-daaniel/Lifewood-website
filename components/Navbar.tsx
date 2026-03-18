@@ -200,26 +200,8 @@ export const Navbar: React.FC = () => {
                         })}
                     </div>
 
-                    {/* Desktop Login Button */}
-                    <div className="hidden lg:flex items-center shrink-0">
-                        <Link
-                            to="/login"
-                            className="rounded-full bg-brand-green hover:bg-green-900 transition-colors px-4 py-2 text-white text-xs font-semibold"
-                            aria-label="Log in"
-                        >
-                            Log in
-                        </Link>
-                    </div>
-
                     {/* Mobile Menu Button */}
-                    <div className="lg:hidden flex items-center gap-2">
-                        <Link
-                            to="/login"
-                            className="rounded-full bg-brand-green px-3 py-1.5 text-white text-xs font-semibold"
-                            aria-label="Log in"
-                        >
-                            Log in
-                        </Link>
+                    <div className="lg:hidden flex items-center">
                         <button 
                             onClick={() => setIsOpen(!isOpen)}
                             className="p-2 text-gray-800"
