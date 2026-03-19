@@ -38,6 +38,8 @@ export const AdminApplicants: React.FC = () => {
     const [editForm, setEditForm] = useState<EditForm | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 5;
 
     useEffect(() => {
         let mounted = true;
@@ -90,6 +92,20 @@ export const AdminApplicants: React.FC = () => {
             (item.country ?? '').toLowerCase().includes(query)
         );
     });
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    const safePage = Math.min(currentPage, totalPages);
+    const paginated = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
     const editInitial = useMemo<EditForm | null>(() => {
         if (!editingApplicant) return null;
@@ -259,9 +275,9 @@ export const AdminApplicants: React.FC = () => {
                         </div>
                     )}
 
-                    {!isLoading && !error && filtered.length > 0 && (
+                    {!isLoading && !error && paginated.length > 0 && (
                         <div className="divide-y divide-black/10">
-                            {filtered.map((item) => (
+                            {paginated.map((item) => (
                                 <div key={item.id} className="px-6 py-5">
                                     <div className="flex flex-wrap items-start justify-between gap-4">
                                         <div>
@@ -344,6 +360,32 @@ export const AdminApplicants: React.FC = () => {
                     {!isLoading && !error && applications.length > 0 && filtered.length === 0 && (
                         <div className="px-6 py-10 text-sm text-black/60">
                             No applicants match your search.
+                        </div>
+                    )}
+
+                    {!isLoading && !error && filtered.length > 0 && totalPages > 1 && (
+                        <div className="flex items-center justify-between px-6 py-4 text-sm text-black/60">
+                            <span>
+                                Page {safePage} of {totalPages}
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                    disabled={safePage === 1}
+                                    className="rounded-full border border-black/10 px-3 py-1 text-xs font-semibold text-black/70 transition hover:border-black/30 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    Prev
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                    disabled={safePage === totalPages}
+                                    className="rounded-full border border-black/10 px-3 py-1 text-xs font-semibold text-black/70 transition hover:border-black/30 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    Next
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
