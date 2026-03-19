@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import emailjs from '@emailjs/browser';
+import { supabase } from '../lib/supabaseClient';
 
 export const ContactUs: React.FC = () => {
     const [name, setName] = useState('');
@@ -16,20 +18,61 @@ export const ContactUs: React.FC = () => {
             return;
         }
 
+        if (!supabase) {
+            setStatus({ type: 'error', message: 'Supabase is not configured yet.' });
+            return;
+        }
+
+        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined;
+        const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined;
+        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined;
+        const adminEmail = import.meta.env.VITE_EMAILJS_ADMIN_EMAIL as string | undefined;
+
+        if (!serviceId || !publicKey || !templateId || !adminEmail) {
+            setStatus({ type: 'error', message: 'EmailJS is not configured yet.' });
+            return;
+        }
+
         setIsSubmitting(true);
         try {
-            const response = await fetch('/api/contact', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name, email, message })
+            const { error: insertError } = await supabase.from('contact_messages').insert({
+                name,
+                email,
+                message
             });
 
-            if (!response.ok) {
-                const payload = await response.json().catch(() => null);
-                throw new Error(payload?.error || 'Failed to send your message.');
+            if (insertError) {
+                throw insertError;
             }
+
+            await emailjs.send(
+                serviceId,
+                templateId,
+                {
+                    to_email: adminEmail,
+                    to_name: 'Admin',
+                    subject: `New contact message from ${name}`,
+                    message,
+                    from_name: name,
+                    from_email: email,
+                    email_type: 'contact_admin'
+                },
+                publicKey
+            );
+
+            await emailjs.send(
+                serviceId,
+                templateId,
+                {
+                    to_email: email,
+                    to_name: name,
+                    subject: 'Thanks for contacting Lifewood',
+                    message: 'Thanks for contacting us. We will get back to you as soon as possible.',
+                    from_name: 'Lifewood',
+                    email_type: 'contact_user'
+                },
+                publicKey
+            );
 
             setStatus({ type: 'success', message: 'Thanks for contacting us. We will get back to you as soon as possible.' });
             setName('');

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import emailjs from '@emailjs/browser';
 import { motion } from 'framer-motion';
 import './Careers.css';
 import './ElegantTextEffects.css';
@@ -58,6 +59,16 @@ export const Careers: React.FC = () => {
             return;
         }
 
+        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined;
+        const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined;
+        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined;
+        const adminEmail = import.meta.env.VITE_EMAILJS_ADMIN_EMAIL as string | undefined;
+
+        if (!serviceId || !publicKey || !templateId || !adminEmail) {
+            setStatus({ type: 'error', message: 'EmailJS is not configured yet.' });
+            return;
+        }
+
         if (!form.name || !form.email || !form.position || !form.resumeFile) {
             setStatus({ type: 'error', message: 'Please fill out the required fields and attach your resume.' });
             return;
@@ -98,24 +109,36 @@ export const Careers: React.FC = () => {
                 throw insertError;
             }
 
-            const emailResponse = await fetch('/api/apply', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name: form.name,
-                    email: form.email,
+            await emailjs.send(
+                serviceId,
+                templateId,
+                {
+                    to_email: adminEmail,
+                    to_name: 'Admin',
+                    subject: `New application: ${form.position}`,
+                    applicant_name: form.name,
+                    applicant_email: form.email,
+                    applicant_contact: form.contactNumber,
+                    applicant_country: form.country,
                     position: form.position,
-                    contactNumber: form.contactNumber,
-                    country: form.country
-                })
-            });
+                    email_type: 'apply_admin'
+                },
+                publicKey
+            );
 
-            if (!emailResponse.ok) {
-                const payload = await emailResponse.json().catch(() => null);
-                throw new Error(payload?.error || 'Application submitted, but confirmation email failed.');
-            }
+            await emailjs.send(
+                serviceId,
+                templateId,
+                {
+                    to_email: form.email,
+                    to_name: form.name,
+                    subject: 'Thanks for applying to Lifewood',
+                    message: `Thanks for applying for the ${form.position} role. Our team will review your application and get back to you soon.`,
+                    position: form.position,
+                    email_type: 'apply_user'
+                },
+                publicKey
+            );
 
             setStatus({
                 type: 'success',

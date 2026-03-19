@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '../components/AdminLayout';
 import { supabase } from '../lib/supabaseClient';
 
@@ -16,12 +16,28 @@ type Applicant = {
     created_at: string;
 };
 
+type EditForm = {
+    name: string;
+    email: string;
+    contact_number: string;
+    gender: string;
+    age: string;
+    address: string;
+    country: string;
+    position: string;
+};
+
 export const AdminApplicants: React.FC = () => {
     const [applications, setApplications] = useState<Applicant[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
+    const [viewingId, setViewingId] = useState<string | null>(null);
+    const [editingApplicant, setEditingApplicant] = useState<Applicant | null>(null);
+    const [editForm, setEditForm] = useState<EditForm | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     useEffect(() => {
         let mounted = true;
@@ -61,8 +77,8 @@ export const AdminApplicants: React.FC = () => {
     const formatDate = (value: string) =>
         new Date(value).toLocaleString(undefined, {
             dateStyle: 'medium',
-            timeStyle: 'short'
-        });
+        timeStyle: 'short'
+    });
 
     const filtered = applications.filter((item) => {
         if (!searchTerm.trim()) return true;
@@ -74,6 +90,24 @@ export const AdminApplicants: React.FC = () => {
             (item.country ?? '').toLowerCase().includes(query)
         );
     });
+
+    const editInitial = useMemo<EditForm | null>(() => {
+        if (!editingApplicant) return null;
+        return {
+            name: editingApplicant.name,
+            email: editingApplicant.email,
+            contact_number: editingApplicant.contact_number ?? '',
+            gender: editingApplicant.gender ?? '',
+            age: editingApplicant.age !== null ? String(editingApplicant.age) : '',
+            address: editingApplicant.address ?? '',
+            country: editingApplicant.country ?? '',
+            position: editingApplicant.position
+        };
+    }, [editingApplicant]);
+
+    useEffect(() => {
+        if (editInitial) setEditForm(editInitial);
+    }, [editInitial]);
 
     const handleDownload = async (application: Applicant) => {
         if (!supabase) return;
@@ -90,6 +124,99 @@ export const AdminApplicants: React.FC = () => {
 
         window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
         setDownloadingId(null);
+    };
+
+    const handleViewResume = async (application: Applicant) => {
+        if (!supabase) return;
+        setViewingId(application.id);
+        const { data, error: signedError } = await supabase.storage
+            .from('resumes')
+            .createSignedUrl(application.resume_path, 60 * 10);
+
+        if (signedError || !data?.signedUrl) {
+            setError(signedError?.message ?? 'Unable to open resume.');
+            setViewingId(null);
+            return;
+        }
+
+        window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+        setViewingId(null);
+    };
+
+    const handleEditChange = (field: keyof EditForm) => (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!editForm) return;
+        setEditForm({ ...editForm, [field]: event.target.value });
+    };
+
+    const handleSaveEdit = async () => {
+        if (!supabase || !editingApplicant || !editForm) return;
+        setIsSaving(true);
+        setError(null);
+
+        const payload = {
+            name: editForm.name.trim(),
+            email: editForm.email.trim(),
+            contact_number: editForm.contact_number.trim() || null,
+            gender: editForm.gender.trim() || null,
+            age: editForm.age ? Number(editForm.age) : null,
+            address: editForm.address.trim() || null,
+            country: editForm.country.trim() || null,
+            position: editForm.position.trim()
+        };
+
+        const { error: updateError } = await supabase
+            .from('career_applications')
+            .update(payload)
+            .eq('id', editingApplicant.id);
+
+        if (updateError) {
+            setError(updateError.message);
+            setIsSaving(false);
+            return;
+        }
+
+        setApplications((prev) =>
+            prev.map((item) =>
+                item.id === editingApplicant.id
+                    ? {
+                          ...item,
+                          ...payload,
+                          contact_number: payload.contact_number,
+                          gender: payload.gender,
+                          age: payload.age,
+                          address: payload.address,
+                          country: payload.country
+                      }
+                    : item
+            )
+        );
+        setEditingApplicant(null);
+        setEditForm(null);
+        setIsSaving(false);
+    };
+
+    const handleDelete = async (application: Applicant) => {
+        if (!supabase) return;
+        const confirmed = window.confirm(`Delete application from ${application.name}? This cannot be undone.`);
+        if (!confirmed) return;
+
+        setDeletingId(application.id);
+        setError(null);
+
+        const { error: deleteError } = await supabase
+            .from('career_applications')
+            .delete()
+            .eq('id', application.id);
+
+        if (deleteError) {
+            setError(deleteError.message);
+            setDeletingId(null);
+            return;
+        }
+
+        await supabase.storage.from('resumes').remove([application.resume_path]);
+        setApplications((prev) => prev.filter((item) => item.id !== application.id));
+        setDeletingId(null);
     };
 
     return (
@@ -167,6 +294,14 @@ export const AdminApplicants: React.FC = () => {
                                             >
                                                 {downloadingId === item.id ? 'Preparing...' : 'Download Resume'}
                                             </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleViewResume(item)}
+                                                disabled={viewingId === item.id}
+                                                className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/70 transition hover:border-black/30 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {viewingId === item.id ? 'Opening...' : 'View Resume'}
+                                            </button>
                                             <a
                                                 href={`mailto:${item.email}?subject=${encodeURIComponent(
                                                     `Lifewood Application: ${item.position}`
@@ -175,6 +310,21 @@ export const AdminApplicants: React.FC = () => {
                                             >
                                                 Reply
                                             </a>
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditingApplicant(item)}
+                                                className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/70 transition hover:border-black/30 hover:text-black"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDelete(item)}
+                                                disabled={deletingId === item.id}
+                                                className="rounded-full border border-red-200 px-4 py-2 text-xs font-semibold text-red-600 transition hover:border-red-400 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {deletingId === item.id ? 'Deleting...' : 'Delete'}
+                                            </button>
                                         </div>
                                     </div>
                                     {(item.gender || item.age || item.address) && (
@@ -198,6 +348,107 @@ export const AdminApplicants: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {editingApplicant && editForm && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
+                    <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-semibold text-black">Edit Applicant</h2>
+                            <button
+                                type="button"
+                                onClick={() => setEditingApplicant(null)}
+                                className="text-sm text-black/60 hover:text-black"
+                            >
+                                Close
+                            </button>
+                        </div>
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className="text-xs font-semibold text-black/60">Name</label>
+                                <input
+                                    value={editForm.name}
+                                    onChange={handleEditChange('name')}
+                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-black/60">Email</label>
+                                <input
+                                    value={editForm.email}
+                                    onChange={handleEditChange('email')}
+                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-black/60">Contact</label>
+                                <input
+                                    value={editForm.contact_number}
+                                    onChange={handleEditChange('contact_number')}
+                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-black/60">Gender</label>
+                                <input
+                                    value={editForm.gender}
+                                    onChange={handleEditChange('gender')}
+                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-black/60">Age</label>
+                                <input
+                                    value={editForm.age}
+                                    onChange={handleEditChange('age')}
+                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-black/60">Position</label>
+                                <input
+                                    value={editForm.position}
+                                    onChange={handleEditChange('position')}
+                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-black/60">Country</label>
+                                <input
+                                    value={editForm.country}
+                                    onChange={handleEditChange('country')}
+                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-black/60">Address</label>
+                                <input
+                                    value={editForm.address}
+                                    onChange={handleEditChange('address')}
+                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex items-center justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setEditingApplicant(null)}
+                                className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/60 hover:text-black"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveEdit}
+                                disabled={isSaving}
+                                className="rounded-full bg-[#0a2f22] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0d3b2b] disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                                {isSaving ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AdminLayout>
     );
 };
