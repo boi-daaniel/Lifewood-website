@@ -28,6 +28,7 @@ export const AdminInbox: React.FC = () => {
     const [sendStatus, setSendStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         let mounted = true;
@@ -113,7 +114,15 @@ export const AdminInbox: React.FC = () => {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filterStatus, sortOrder]);
+
     const unreadCount = messages.filter((item) => !item.is_read).length;
+    const pageSize = 10;
+    const totalPages = Math.max(1, Math.ceil(sortedMessages.length / pageSize));
+    const safePage = Math.min(currentPage, totalPages);
+    const pagedMessages = sortedMessages.slice((safePage - 1) * pageSize, safePage * pageSize);
 
     const openReply = (item: ContactMessage) => {
         setComposeTo(item.email);
@@ -262,7 +271,7 @@ export const AdminInbox: React.FC = () => {
 
                     {!isLoading && !error && sortedMessages.length > 0 && (
                         <div className="divide-y divide-black/10">
-                            {sortedMessages.map((item) => (
+                            {pagedMessages.map((item) => (
                                 <div key={item.id} className="px-6 py-5">
                                     <div className="flex flex-wrap items-center justify-between gap-3">
                                         <div>
@@ -343,6 +352,32 @@ export const AdminInbox: React.FC = () => {
                                     <p className="mt-3 text-sm text-black/70 whitespace-pre-wrap">{item.message}</p>
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {!isLoading && !error && sortedMessages.length > 0 && totalPages > 1 && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 px-6 py-4 text-xs text-black/60">
+                            <span>
+                                Page {safePage} of {totalPages}
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                    disabled={safePage === 1}
+                                    className="rounded-full border border-black/10 px-3 py-1 text-[11px] font-semibold text-black/70 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    Previous
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                    disabled={safePage === totalPages}
+                                    className="rounded-full border border-black/10 px-3 py-1 text-[11px] font-semibold text-black/70 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    Next
+                                </button>
+                            </div>
                         </div>
                     )}
 

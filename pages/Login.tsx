@@ -247,9 +247,12 @@ export const Login: React.FC = () => {
                             Back
                         </Link>
 
-                        <div className="mt-7 flex items-center gap-2">
-                            <span className="h-3 w-3 rounded-full bg-[#facc15]" />
-                            <span className="text-2xl font-bold text-white">lifewood</span>
+                        <div className="mt-7 flex items-center">
+                            <img
+                                src="https://framerusercontent.com/images/Ca8ppNsvJIfTsWEuHr50gvkDow.png?scale-down-to=512&width=2624&height=474"
+                                alt="Lifewood"
+                                className="h-7 w-auto"
+                            />
                         </div>
 
                         <h1 className="mt-9 text-4xl font-bold tracking-tight text-white">

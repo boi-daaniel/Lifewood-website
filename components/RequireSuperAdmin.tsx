@@ -78,14 +78,6 @@ export const RequireSuperAdmin: React.FC = () => {
     }
 
     if (state.status === 'denied') {
-        if (state.message) {
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-white px-6 text-center text-sm text-gray-700">
-                    {state.message}
-                </div>
-            );
-        }
-
         return <Navigate to="/admin/dashboard" state={{ from: location }} replace />;
     }
 
