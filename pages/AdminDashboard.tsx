@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '../components/AdminLayout';
+import DarkVeil from '../components/DarkVeil';
 import { supabase } from '../lib/supabaseClient';
 import { getTimeZoneForCountry } from '../lib/countries';
 
@@ -173,7 +174,19 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="rounded-[28px] border border-black/10 bg-[#046241] p-5 text-white shadow-[0_30px_50px_rgba(0,0,0,0.5)]">
+                    <div className="relative overflow-hidden rounded-[28px] border border-black/10 bg-black p-5 text-white shadow-[0_30px_50px_rgba(0,0,0,0.5)]">
+                        <div className="pointer-events-none absolute inset-0 opacity-85">
+                            <DarkVeil
+                                hueShift={30}
+                                noiseIntensity={0.06}
+                                scanlineIntensity={0.05}
+                                speed={0.5}
+                                scanlineFrequency={1.45}
+                                warpAmount={0.18}
+                            />
+                            <div className="absolute inset-0 bg-black/45" />
+                        </div>
+                        <div className="relative z-10">
                         <p className="text-xs text-white/50">Latest Contact</p>
                         <p className="mt-2 text-xl font-semibold">{messageStats.latestSender}</p>
                         <p className="mt-1 text-sm text-white/70">
@@ -196,6 +209,7 @@ export const AdminDashboard: React.FC = () => {
                                 {loadingStats ? '—' : messageStats.total}
                             </p>
                             <p className="mt-1 text-xs text-white/70">Total submissions</p>
+                        </div>
                         </div>
                     </div>
                 </section>

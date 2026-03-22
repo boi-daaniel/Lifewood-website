@@ -437,7 +437,7 @@ export const Offices: React.FC = () => {
                     </div>
 
                     <div className="relative flex flex-col items-center xl:items-stretch">
-                        <div className="hidden xl:flex flex-col items-center absolute -top-44 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                        <div className="hidden">
                             <motion.div
                                 animate={{ rotate: 360 }}
                                 transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
