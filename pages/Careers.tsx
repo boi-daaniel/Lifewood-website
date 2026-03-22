@@ -204,6 +204,8 @@ export const Careers: React.FC = () => {
                                 speed={0.45}
                                 scanlineFrequency={1.3}
                                 warpAmount={0.16}
+                                tintColor="#ff8a1f"
+                                tintStrength={0.4}
                             />
                             <div className="absolute inset-0 bg-black/55" />
                         </div>
