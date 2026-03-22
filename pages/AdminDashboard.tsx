@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '../components/AdminLayout';
 import { supabase } from '../lib/supabaseClient';
+import { getTimeZoneForCountry } from '../lib/countries';
 
 export const AdminDashboard: React.FC = () => {
-    const currentTerm = useMemo(() => 'Spring Term 2026', []);
+    const [currentDateTime, setCurrentDateTime] = useState('');
     const [messageStats, setMessageStats] = useState({
         total: 0,
         unread: 0,
@@ -13,6 +14,31 @@ export const AdminDashboard: React.FC = () => {
     });
     const [applicationsTotal, setApplicationsTotal] = useState<number | null>(null);
     const [loadingStats, setLoadingStats] = useState(true);
+    const [adminTimeZone, setAdminTimeZone] = useState<string | null>(null);
+
+    const formatNow = (timeZone?: string | null) => {
+        const now = new Date();
+        const options: Intl.DateTimeFormatOptions = {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+        };
+        const timeOptions: Intl.DateTimeFormatOptions = {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        };
+        if (timeZone) {
+            options.timeZone = timeZone;
+            timeOptions.timeZone = timeZone;
+        }
+        const date = now.toLocaleDateString(undefined, options);
+        const time = now
+            .toLocaleTimeString(undefined, timeOptions)
+            .replace('AM', 'am')
+            .replace('PM', 'pm');
+        return `${date} | ${time}`;
+    };
 
     useEffect(() => {
         let mounted = true;
@@ -21,6 +47,18 @@ export const AdminDashboard: React.FC = () => {
             if (!supabase) {
                 if (mounted) setLoadingStats(false);
                 return;
+            }
+
+            const { data: sessionData } = await supabase.auth.getSession();
+            const userId = sessionData.session?.user?.id;
+            if (userId) {
+                const { data: profile } = await supabase
+                    .from('admin_profiles')
+                    .select('location')
+                    .eq('id', userId)
+                    .maybeSingle();
+                const tz = getTimeZoneForCountry(profile?.location);
+                setAdminTimeZone(tz);
             }
 
             const [{ count: totalCount, error: totalError }, { count: unreadCount, error: unreadError }] =
@@ -61,6 +99,14 @@ export const AdminDashboard: React.FC = () => {
         };
     }, []);
 
+    useEffect(() => {
+        setCurrentDateTime(formatNow(adminTimeZone));
+        const clock = window.setInterval(() => {
+            setCurrentDateTime(formatNow(adminTimeZone));
+        }, 60000);
+        return () => window.clearInterval(clock);
+    }, [adminTimeZone]);
+
     const formatDate = (value: string) =>
         value
             ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
@@ -76,7 +122,7 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold text-black/70 shadow-sm">
                         <span className="h-2 w-2 rounded-full bg-[#c9ff3c]" />
-                        {currentTerm}
+                        {currentDateTime}
                     </div>
                 </div>
 
@@ -127,7 +173,7 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="rounded-[28px] border border-black/10 bg-[#101215] p-5 text-white shadow-[0_30px_50px_rgba(0,0,0,0.5)]">
+                    <div className="rounded-[28px] border border-black/10 bg-[#046241] p-5 text-white shadow-[0_30px_50px_rgba(0,0,0,0.5)]">
                         <p className="text-xs text-white/50">Latest Contact</p>
                         <p className="mt-2 text-xl font-semibold">{messageStats.latestSender}</p>
                         <p className="mt-1 text-sm text-white/70">
@@ -136,7 +182,7 @@ export const AdminDashboard: React.FC = () => {
 
                         <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
                             <p className="text-xs uppercase tracking-[0.3em] text-white/50">Applications</p>
-                            <p className="mt-3 text-3xl font-semibold">
+                            <p className="mt-3 text-3xl font-semibold text-white">
                                 {loadingStats ? '—' : applicationsTotal ?? '—'}
                             </p>
                             <p className="mt-1 text-xs text-white/60">
@@ -145,11 +191,11 @@ export const AdminDashboard: React.FC = () => {
                         </div>
 
                         <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
-                            <p className="text-xs uppercase tracking-[0.3em] text-white/50">Contact Messages</p>
-                            <p className="mt-3 text-3xl font-semibold">
+                            <p className="text-xs uppercase tracking-[0.3em] text-white/70">Contact Messages</p>
+                            <p className="mt-3 text-3xl font-semibold text-white">
                                 {loadingStats ? '—' : messageStats.total}
                             </p>
-                            <p className="mt-1 text-xs text-white/60">Total submissions</p>
+                            <p className="mt-1 text-xs text-white/70">Total submissions</p>
                         </div>
                     </div>
                 </section>
@@ -191,9 +237,9 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="rounded-[26px] border border-black/10 bg-[#111215] p-6 text-white shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
+                    <div className="rounded-[26px] border border-black/10 bg-[#046241] p-6 text-white shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
                         <p className="text-xs uppercase tracking-[0.3em] text-white/50">Applications</p>
-                        <p className="mt-4 text-3xl font-semibold">
+                        <p className="mt-4 text-3xl font-semibold text-white">
                             {loadingStats ? '—' : applicationsTotal ?? '—'}
                         </p>
                         <p className="mt-1 text-sm text-white/70">

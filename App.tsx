@@ -25,9 +25,13 @@ import { Login } from './pages/Login';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminInbox } from './pages/AdminInbox';
 import { AdminApplicants } from './pages/AdminApplicants';
+import { AdminAnalytics } from './pages/AdminAnalytics';
+import { AdminManagement } from './pages/AdminManagement';
+import { RequireSuperAdmin } from './components/RequireSuperAdmin';
 import { TermsAndConditions } from './pages/TermsAndConditions';
 import { SupportChatbot } from './components/SupportChatbot';
 import GradualBlur from './components/GradualBlur';
+import { trackPageView } from './lib/analytics';
 
 let lenisInstance: Lenis | null = null;
 
@@ -127,6 +131,10 @@ function AnimatedRoutes() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="inbox" element={<AdminInbox />} />
             <Route path="applicants" element={<AdminApplicants />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="management" element={<RequireSuperAdmin />}>
+              <Route index element={<AdminManagement />} />
+            </Route>
             <Route path="*" element={<Navigate to="dashboard" replace />} />
           </Route>
           <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
@@ -155,6 +163,11 @@ export default App;
 function AppShell() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+
+  useEffect(() => {
+    if (isAdminRoute) return;
+    trackPageView(location.pathname);
+  }, [isAdminRoute, location.pathname]);
 
   return (
     <div className="min-h-screen font-sans text-gray-900 dark:text-white selection:bg-brand-gold selection:text-white transition-colors duration-300">

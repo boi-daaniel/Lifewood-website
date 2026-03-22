@@ -82,7 +82,7 @@ const ProcessSlideshow: React.FC = () => {
         },
         {
             title: 'Data Acquisition',
-            description: 'We provide end-to-end data acquisition solutionsâ€”capturing, processing, and managing large-scale, diverse datasets.'
+            description: 'We provide end-to-end data acquisition solutions—capturing, processing, and managing large-scale, diverse datasets.'
         },
         {
             title: 'Data Curation',
@@ -462,7 +462,7 @@ export const AIServices: React.FC = () => {
                         transition={{ duration: 0.8, delay: 0.4 }}
                         className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mb-8 leading-relaxed"
                     >
-                        Lifewood delivers end-to-end AI data solutionsâ€”from multi-language data collection and annotation to model training and generative AI content. Leveraging our global workforce, industrialized methodology, and proprietary LIFT platform.
+                        Lifewood delivers end-to-end AI data solutions—from multi-language data collection and annotation to model training and generative AI content. Leveraging our global workforce, industrialized methodology, and proprietary LIFT platform.
                     </motion.p>
                     
                     <ContactUsButton />

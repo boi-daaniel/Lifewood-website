@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Ban, Eye, EyeOff, Github, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Ban, Eye, EyeOff, Sparkles } from 'lucide-react';
 import DarkVeil from '../components/DarkVeil';
 import { supabase } from '../lib/supabaseClient';
 
@@ -14,6 +14,62 @@ export const Login: React.FC = () => {
     const [password, setPassword] = useState('');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [isResetting, setIsResetting] = useState(false);
+    const [resetMode, setResetMode] = useState(false);
+    const [resetStage, setResetStage] = useState<'request' | 'update'>('request');
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetStatus, setResetStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+    useEffect(() => {
+        if (!supabase) return;
+        const handleRecoveryFromUrl = async () => {
+            try {
+                const url = new URL(window.location.href);
+                const code = url.searchParams.get('code');
+                const hash = window.location.hash || '';
+                const hasRecoveryType = url.searchParams.get('type') === 'recovery' || hash.includes('type=recovery');
+
+                if (code) {
+                    const { error } = await supabase.auth.exchangeCodeForSession(code);
+                    if (error) {
+                        setResetStatus({ type: 'error', message: error.message });
+                        return;
+                    }
+                }
+
+                if (code || hasRecoveryType) {
+                    setResetMode(true);
+                    setResetStage('update');
+                    setResetStatus(null);
+                    setNewPassword('');
+                    setConfirmPassword('');
+                }
+            } catch (error) {
+                setResetStatus({
+                    type: 'error',
+                    message: error instanceof Error ? error.message : 'Unable to process reset link.'
+                });
+            }
+        };
+
+        handleRecoveryFromUrl();
+        const { data } = supabase.auth.onAuthStateChange((event) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                setResetMode(true);
+                setResetStage('update');
+                setResetStatus(null);
+                setNewPassword('');
+                setConfirmPassword('');
+            }
+        });
+
+        return () => {
+            data?.subscription?.unsubscribe();
+        };
+    }, []);
 
     const normalizeEmail = (value: string) => {
         const trimmed = value.trim();
@@ -65,7 +121,11 @@ export const Login: React.FC = () => {
 
                 if (adminError || !adminProfile) {
                     await supabase.auth.signOut();
-                    setErrorMessage('This account is not granted admin access yet.');
+                    const debugMessage = adminError?.message
+                        ? ` Admin profile lookup failed: ${adminError.message}`
+                        : ' Admin profile lookup returned no rows.';
+                    console.warn('Admin login debug', { adminError, adminProfile, userId });
+                    setErrorMessage(`This account is not granted admin access yet.${debugMessage}`);
                     return;
                 }
 
@@ -79,19 +139,110 @@ export const Login: React.FC = () => {
         }
     };
 
+    const openResetPanel = () => {
+        setResetStatus(null);
+        setResetEmail(identifier.trim());
+        setResetStage('request');
+        setResetMode(true);
+    };
+
+    const handleForgotPassword = async () => {
+        setResetStatus(null);
+
+        if (!supabase) {
+            setResetStatus({
+                type: 'error',
+                message: 'Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+            });
+            return;
+        }
+
+        if (!resetEmail.trim()) {
+            setResetStatus({ type: 'error', message: 'Please enter your email first.' });
+            return;
+        }
+
+        setIsResetting(true);
+        try {
+            const email = normalizeEmail(resetEmail);
+            const redirectTo =
+                (import.meta.env.VITE_PASSWORD_RESET_REDIRECT as string | undefined) ??
+                `${window.location.origin}/admin/login`;
+
+            const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+            if (error) {
+                setResetStatus({ type: 'error', message: error.message });
+            } else {
+                setResetStatus({
+                    type: 'success',
+                    message: 'Password reset email sent. Please check your inbox.'
+                });
+            }
+        } catch (error) {
+            setResetStatus({
+                type: 'error',
+                message: error instanceof Error ? error.message : 'Failed to send reset email.'
+            });
+        } finally {
+            setIsResetting(false);
+        }
+    };
+
+    const handleUpdatePassword = async () => {
+        setResetStatus(null);
+
+        if (!supabase) {
+            setResetStatus({
+                type: 'error',
+                message: 'Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+            });
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            setResetStatus({ type: 'error', message: 'Password must be at least 8 characters.' });
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setResetStatus({ type: 'error', message: 'Passwords do not match.' });
+            return;
+        }
+
+        setIsUpdatingPassword(true);
+        try {
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+            if (error) {
+                setResetStatus({ type: 'error', message: error.message });
+            } else {
+                setResetStatus({ type: 'success', message: 'Password updated successfully. You can sign in now.' });
+                setResetStage('request');
+                setResetMode(false);
+            }
+        } catch (error) {
+            setResetStatus({
+                type: 'error',
+                message: error instanceof Error ? error.message : 'Failed to update password.'
+            });
+        } finally {
+            setIsUpdatingPassword(false);
+        }
+    };
+
     return (
         <div className="relative min-h-screen overflow-hidden bg-white pt-24 pb-12">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_-8%,rgba(16,79,56,0.08),transparent_42%),radial-gradient(circle_at_90%_118%,rgba(117,79,255,0.08),transparent_38%)]" />
 
-            <section className="relative mx-auto w-[min(1240px,95%)]">
+            <section className="relative mx-auto w-full max-w-[560px] px-4">
                 <motion.div
                     initial={{ opacity: 0, y: 18 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                    className="grid gap-3 rounded-[2rem] border border-black/10 bg-transparent p-3 lg:grid-cols-[420px,1fr]"
+                    className="grid gap-3 rounded-[2rem] border border-black/10 bg-transparent p-2"
                 >
-                    <div className="rounded-[1.7rem] border border-white/10 bg-[#07090c] p-6 md:p-8">
-                        <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white">
+                    <div className="rounded-[1.7rem] border border-white/10 bg-[#046241] p-6 md:p-8">
+                        <Link to="/" className="inline-flex items-center gap-2 text-sm text-white transition-colors hover:text-white">
                             <ArrowLeft size={16} />
                             Back
                         </Link>
@@ -101,159 +252,212 @@ export const Login: React.FC = () => {
                             <span className="text-2xl font-bold text-white">lifewood</span>
                         </div>
 
-                        <h1 className="mt-9 text-4xl font-bold tracking-tight text-white">Sign In</h1>
-                        <p className="mt-2 text-sm text-gray-400">Enter your credentials to access your dashboard</p>
+                        <h1 className="mt-9 text-4xl font-bold tracking-tight text-white">
+                            {resetMode ? 'Forgot Password' : 'Sign In'}
+                        </h1>
+                        <p className="mt-2 text-sm text-white">
+                            {resetMode
+                                ? 'Enter your email to receive a reset link'
+                                : 'Enter your credentials to access your dashboard'}
+                        </p>
 
-                        <div className="mt-8 grid grid-cols-2 gap-3">
-                            <button
-                                type="button"
-                                className="flex h-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10"
-                                aria-label="Sign in with Google"
+                        <div className="relative overflow-hidden">
+                            <motion.div
+                                className="flex w-[200%]"
+                                animate={{ x: resetMode ? '-50%' : '0%' }}
+                                transition={{ type: 'spring', stiffness: 220, damping: 26 }}
                             >
-                                <span className="text-lg font-semibold">G</span>
-                            </button>
-                            <button
-                                type="button"
-                                className="flex h-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10"
-                                aria-label="Sign in with Github"
-                            >
-                                <Github size={18} />
-                            </button>
-                        </div>
+                                <form className="w-1/2 pr-3 space-y-4" onSubmit={handleSubmit}>
+                                    <div>
+                                        <label htmlFor="identifier" className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-white">
+                                            Username or Email
+                                        </label>
+                                        <input
+                                            id="identifier"
+                                            type="text"
+                                            value={identifier}
+                                            onChange={(event) => setIdentifier(event.target.value)}
+                                            autoComplete="username"
+                                            className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none transition focus:border-white/30"
+                                        />
+                                    </div>
 
-                        <div className="my-7 flex items-center gap-3 text-xs text-gray-500">
-                            <span className="h-px flex-1 bg-white/10" />
-                            or
-                            <span className="h-px flex-1 bg-white/10" />
-                        </div>
+                                    <div>
+                                        <div className="mb-2 flex items-center justify-between">
+                                            <label htmlFor="password" className="block text-[11px] font-semibold uppercase tracking-wide text-white">
+                                                Password
+                                            </label>
+                                        </div>
+                                        <div className="relative">
+                                            <input
+                                                id="password"
+                                                type={showPassword ? 'text' : 'password'}
+                                                value={password}
+                                                onChange={(event) => setPassword(event.target.value)}
+                                                autoComplete="current-password"
+                                                className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 pr-11 text-sm text-white outline-none transition focus:border-white/30"
+                                            />
+                                            <button
+                                                type="button"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 transition-colors hover:text-white"
+                                                onClick={() => setShowPassword((prev) => !prev)}
+                                                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                            >
+                                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                            </button>
+                                        </div>
+                                        <div className="mt-2 flex justify-end">
+                                            <button
+                                                type="button"
+                                                onClick={openResetPanel}
+                                                disabled={isResetting}
+                                                className="text-[11px] text-white transition-colors hover:text-white/80 disabled:cursor-not-allowed disabled:opacity-70"
+                                            >
+                                                Forgot password?
+                                            </button>
+                                        </div>
+                                    </div>
 
-                        <form className="space-y-4" onSubmit={handleSubmit}>
-                            <div>
-                                <label htmlFor="identifier" className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                                    Username or Email
-                                </label>
-                                <input
-                                    id="identifier"
-                                    type="text"
-                                    value={identifier}
-                                    onChange={(event) => setIdentifier(event.target.value)}
-                                    autoComplete="username"
-                                    className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none transition focus:border-white/30"
-                                />
-                            </div>
+                                    {(errorMessage || successMessage) && (
+                                        <div
+                                            role="status"
+                                            className={`rounded-xl border px-3 py-2 text-xs ${
+                                                errorMessage
+                                                    ? 'border-red-500/40 bg-red-500/10 text-red-200'
+                                                    : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+                                            }`}
+                                        >
+                                            {errorMessage ?? successMessage}
+                                        </div>
+                                    )}
 
-                            <div>
-                                <div className="mb-2 flex items-center justify-between">
-                                    <label htmlFor="password" className="block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                                        Password
-                                    </label>
-                                    <button type="button" className="text-[11px] text-gray-500 transition-colors hover:text-gray-300">
-                                        Forgot?
-                                    </button>
-                                </div>
-                                <div className="relative">
-                                    <input
-                                        id="password"
-                                        type={showPassword ? 'text' : 'password'}
-                                        value={password}
-                                        onChange={(event) => setPassword(event.target.value)}
-                                        autoComplete="current-password"
-                                        className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 pr-11 text-sm text-white outline-none transition focus:border-white/30"
-                                    />
+                                    {!supabase && !errorMessage && (
+                                        <div className="rounded-xl border border-amber-300/40 bg-amber-200/10 px-3 py-2 text-xs text-amber-100">
+                                            Supabase is not configured yet. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` then refresh.
+                                        </div>
+                                    )}
+
                                     <button
-                                        type="button"
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-gray-300"
-                                        onClick={() => setShowPassword((prev) => !prev)}
-                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#133020] text-sm font-semibold text-white transition-colors enabled:hover:bg-[#19422b] disabled:cursor-not-allowed disabled:opacity-70"
                                     >
-                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        {isSubmitting ? 'Signing In...' : 'Sign In'}
+                                        {isSubmitting && <Ban size={15} className="text-red-600" />}
                                     </button>
-                                </div>
-                            </div>
+                                </form>
 
-                            {(errorMessage || successMessage) && (
-                                <div
-                                    role="status"
-                                    className={`rounded-xl border px-3 py-2 text-xs ${
-                                        errorMessage
-                                            ? 'border-red-500/40 bg-red-500/10 text-red-200'
-                                            : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
-                                    }`}
-                                >
-                                    {errorMessage ?? successMessage}
-                                </div>
-                            )}
+                                <div className="w-1/2 pl-3 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h2 className="text-lg font-semibold text-white">
+                                                {resetStage === 'update' ? 'Set New Password' : 'Reset Password'}
+                                            </h2>
+                                            <p className="mt-1 text-xs text-white">
+                                                {resetStage === 'update'
+                                                    ? 'Create a new password to finish the reset.'
+                                                    : 'We will send a reset link to your email.'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setResetMode(false)}
+                                            className="text-[11px] text-white hover:text-white/80"
+                                        >
+                                            Back
+                                        </button>
+                                    </div>
 
-                            {!supabase && !errorMessage && (
-                                <div className="rounded-xl border border-amber-300/40 bg-amber-200/10 px-3 py-2 text-xs text-amber-100">
-                                    Supabase is not configured yet. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` then refresh.
-                                </div>
-                            )}
+                                    {resetStage === 'request' ? (
+                                        <>
+                                            <div>
+                                                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-white">
+                                                    Email
+                                                </label>
+                                                <input
+                                                    value={resetEmail}
+                                                    onChange={(event) => setResetEmail(event.target.value)}
+                                                    className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none transition focus:border-white/30"
+                                                    placeholder="you@company.com"
+                                                />
+                                            </div>
 
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#a8adb3] text-sm font-semibold text-[#0b0b0b] transition-colors enabled:hover:bg-[#b6bbc1] disabled:cursor-not-allowed disabled:opacity-70"
-                            >
-                                {isSubmitting ? 'Signing In...' : 'Sign In'}
-                                {isSubmitting && <Ban size={15} className="text-red-600" />}
-                            </button>
-                        </form>
+                                            {resetStatus && (
+                                                <div
+                                                    className={`rounded-xl border px-3 py-2 text-xs ${
+                                                        resetStatus.type === 'success'
+                                                            ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+                                                            : 'border-red-500/40 bg-red-500/10 text-red-200'
+                                                    }`}
+                                                >
+                                                    {resetStatus.message}
+                                                </div>
+                                            )}
+
+                                            <button
+                                                type="button"
+                                                onClick={handleForgotPassword}
+                                                disabled={isResetting}
+                                                className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#133020] text-sm font-semibold text-white transition-colors enabled:hover:bg-[#19422b] disabled:cursor-not-allowed disabled:opacity-70"
+                                            >
+                                                {isResetting ? 'Sending...' : 'Send Reset Link'}
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div>
+                                                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-white">
+                                                    New Password
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    value={newPassword}
+                                                    onChange={(event) => setNewPassword(event.target.value)}
+                                                    className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none transition focus:border-white/30"
+                                                    placeholder="At least 8 characters"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-white">
+                                                    Confirm Password
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    value={confirmPassword}
+                                                    onChange={(event) => setConfirmPassword(event.target.value)}
+                                                    className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none transition focus:border-white/30"
+                                                    placeholder="Re-enter password"
+                                                />
+                                            </div>
+
+                                            {resetStatus && (
+                                                <div
+                                                    className={`rounded-xl border px-3 py-2 text-xs ${
+                                                        resetStatus.type === 'success'
+                                                            ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+                                                            : 'border-red-500/40 bg-red-500/10 text-red-200'
+                                                    }`}
+                                                >
+                                                    {resetStatus.message}
+                                                </div>
+                                            )}
+
+                                            <button
+                                                type="button"
+                                                onClick={handleUpdatePassword}
+                                                disabled={isUpdatingPassword}
+                                                className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#c9ff3c] text-sm font-semibold text-black transition-colors enabled:hover:bg-[#d8ff70] disabled:cursor-not-allowed disabled:opacity-70"
+                                            >
+                                                {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </motion.div>
+                        </div>
                     </div>
 
-                    <div className="relative min-h-[340px] overflow-hidden rounded-[1.7rem] border border-white/10 bg-[#171a26] p-4 md:p-5 lg:min-h-[700px]">
-                        <div className="pointer-events-none absolute inset-0 rounded-[1.7rem] overflow-hidden">
-                            <DarkVeil
-                                hueShift={210}
-                                noiseIntensity={0.04}
-                                scanlineIntensity={0.03}
-                                speed={0.5}
-                                scanlineFrequency={1.4}
-                                warpAmount={0.14}
-                            />
-                            <div className="absolute inset-0 bg-black/22" />
-                        </div>
-
-                        <div className="relative z-10 grid h-full auto-rows-[minmax(90px,auto)] grid-cols-1 gap-3 md:grid-cols-6">
-                            <div className="md:col-span-6 rounded-3xl border border-white/30 bg-black/25 p-4 backdrop-blur-xl">
-                                <div className="h-14 w-full rounded-2xl bg-white/10" />
-                            </div>
-
-                            <div className="md:col-span-4 rounded-3xl bg-[#ececef]/72 p-5 shadow-[0_16px_30px_rgba(30,30,40,0.12)] backdrop-blur-sm">
-                                <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#b7f8d6] text-[#e69500] shadow-[0_8px_18px_rgba(18,18,18,0.2)]">
-                                    <Sparkles size={18} />
-                                </div>
-                                <p className="mt-4 text-sm text-gray-500">Harness the power of AI for cutting-edge 3D creations.</p>
-                            </div>
-
-                            <div className="md:col-span-2 rounded-3xl bg-[#d7d7de]/70 p-5 shadow-[0_16px_30px_rgba(30,30,40,0.12)] backdrop-blur-sm">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Secure Access</p>
-                                <p className="mt-3 text-3xl font-bold text-[#11131a]">24/7</p>
-                                <p className="mt-1 text-sm text-gray-600">Protected login flow</p>
-                            </div>
-
-                            <div className="md:col-span-3 rounded-3xl bg-[#c7e94a] px-5 py-6 shadow-[0_16px_30px_rgba(30,36,16,0.2)]">
-                                <h2 className="text-3xl font-bold text-black">User-Friendly</h2>
-                                <p className="mt-1 text-sm text-black/60">Intuitive platform for everyone.</p>
-                            </div>
-
-                            <div className="md:col-span-3 rounded-3xl bg-[#a1a1a4]/78 px-5 py-6 text-white/80 shadow-[0_16px_30px_rgba(25,25,29,0.24)] backdrop-blur-sm">
-                                <p className="text-xs uppercase tracking-wide text-white/70">Quick Start</p>
-                                <p className="mt-3 text-lg font-semibold text-white">Launch in minutes</p>
-                                <p className="mt-1 text-sm text-white/70">Simple setup and guided onboarding.</p>
-                            </div>
-
-                            <button
-                                type="button"
-                                className="group md:col-span-6 flex items-center justify-between rounded-3xl bg-[#8f8f93]/78 px-5 py-5 text-left text-white/80 transition-colors hover:bg-[#848488]/90 backdrop-blur-sm"
-                            >
-                                <span className="text-sm">Join the future</span>
-                                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/30 transition-transform group-hover:translate-x-0.5">
-                                    <ArrowRight size={16} />
-                                </span>
-                            </button>
-                        </div>
-                    </div>
+                    
                 </motion.div>
             </section>
         </div>

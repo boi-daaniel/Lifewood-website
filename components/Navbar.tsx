@@ -200,6 +200,16 @@ export const Navbar: React.FC = () => {
                         })}
                     </div>
 
+                    {/* Join Us CTA */}
+                    <div className="hidden lg:flex items-center">
+                        <Link
+                            to="/careers"
+                            className="rounded-full border border-black/10 bg-[#0a2f22] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_10px_24px_rgba(8,20,18,0.25)] transition hover:bg-[#0d3b2b]"
+                        >
+                            Join Us
+                        </Link>
+                    </div>
+
                     {/* Mobile Menu Button */}
                     <div className="lg:hidden flex items-center">
                         <button 
@@ -268,6 +278,13 @@ export const Navbar: React.FC = () => {
                             )}
                         </div>
                     ))}
+                    <Link
+                        to="/careers"
+                        onClick={() => setIsOpen(false)}
+                        className="mt-2 inline-flex items-center justify-center rounded-full bg-[#0a2f22] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(8,20,18,0.25)]"
+                    >
+                        Join Us
+                    </Link>
                 </div>
             )}
         </nav>
