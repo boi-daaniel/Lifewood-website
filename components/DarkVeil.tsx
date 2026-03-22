@@ -37,12 +37,12 @@ vec3 hueShiftRGB(vec3 col,float deg){
 
 vec3 orangePalette(vec3 col){
     float luma=dot(col,vec3(0.299,0.587,0.114));
-    float glow=smoothstep(0.18,0.92,luma);
+    float glow=smoothstep(0.12,0.82,luma);
     vec3 shadow=vec3(0.01,0.005,0.0);
-    vec3 mid=vec3(0.22,0.08,0.01);
-    vec3 highlight=vec3(1.0,0.56,0.12);
-    vec3 base=mix(shadow,mid,smoothstep(0.0,0.45,luma));
-    return mix(base,highlight,glow);
+    vec3 mid=vec3(0.38,0.14,0.02);
+    vec3 highlight=vec3(1.0,0.72,0.24);
+    vec3 base=mix(shadow,mid,smoothstep(0.0,0.38,luma));
+    return mix(base,highlight,glow*0.95);
 }
 
 vec4 sigmoid(vec4 x){return 1./(1.+exp(-x));}
