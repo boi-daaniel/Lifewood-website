@@ -35,6 +35,16 @@ vec3 hueShiftRGB(vec3 col,float deg){
     return clamp(yiq2rgb*yiqShift,0.0,1.0);
 }
 
+vec3 orangePalette(vec3 col){
+    float luma=dot(col,vec3(0.299,0.587,0.114));
+    float glow=smoothstep(0.18,0.92,luma);
+    vec3 shadow=vec3(0.01,0.005,0.0);
+    vec3 mid=vec3(0.22,0.08,0.01);
+    vec3 highlight=vec3(1.0,0.56,0.12);
+    vec3 base=mix(shadow,mid,smoothstep(0.0,0.45,luma));
+    return mix(base,highlight,glow);
+}
+
 vec4 sigmoid(vec4 x){return 1./(1.+exp(-x));}
 
 vec4 cppn_fn(vec2 coordinate,float in0,float in1,float in2){
@@ -67,6 +77,7 @@ void mainImage(out vec4 fragColor,in vec2 fragCoord){
 void main(){
     vec4 col;mainImage(col,gl_FragCoord.xy);
     col.rgb=hueShiftRGB(col.rgb,uHueShift);
+    col.rgb=orangePalette(col.rgb);
     float scanline_val=sin(gl_FragCoord.y*uScanFreq)*0.5+0.5;
     col.rgb*=1.-(scanline_val*scanline_val)*uScan;
     col.rgb+=(rand(gl_FragCoord.xy+uTime)-0.5)*uNoise;
@@ -164,7 +175,7 @@ export default function DarkVeil({
       }
       const host = parent as HTMLElement;
       host.style.background =
-        'radial-gradient(circle at 25% 20%, rgba(110, 96, 176, 0.35), rgba(231, 231, 234, 0) 42%), radial-gradient(circle at 80% 85%, rgba(62, 48, 130, 0.28), rgba(231, 231, 234, 0) 36%)';
+        'radial-gradient(circle at 25% 20%, rgba(255, 163, 71, 0.35), rgba(231, 231, 234, 0) 42%), radial-gradient(circle at 80% 85%, rgba(255, 122, 24, 0.28), rgba(231, 231, 234, 0) 36%)';
       // eslint-disable-next-line no-console
       console.warn('DarkVeil fallback activated:', error);
     }
