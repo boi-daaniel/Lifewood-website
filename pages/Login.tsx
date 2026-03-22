@@ -250,8 +250,6 @@ export const Login: React.FC = () => {
                                 speed={0.6}
                                 scanlineFrequency={1.6}
                                 warpAmount={0.2}
-                                tintColor="#ff8a1f"
-                                tintStrength={0.4}
                             />
                             <div className="absolute inset-0 bg-black/40" />
                         </div>

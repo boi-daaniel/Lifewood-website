@@ -18,8 +18,6 @@ uniform float uNoise;
 uniform float uScan;
 uniform float uScanFreq;
 uniform float uWarp;
-uniform vec3 uTintColor;
-uniform float uTintStrength;
 #define iTime uTime
 #define iResolution uResolution
 
@@ -69,7 +67,6 @@ void mainImage(out vec4 fragColor,in vec2 fragCoord){
 void main(){
     vec4 col;mainImage(col,gl_FragCoord.xy);
     col.rgb=hueShiftRGB(col.rgb,uHueShift);
-    col.rgb=mix(col.rgb,uTintColor,uTintStrength);
     float scanline_val=sin(gl_FragCoord.y*uScanFreq)*0.5+0.5;
     col.rgb*=1.-(scanline_val*scanline_val)*uScan;
     col.rgb+=(rand(gl_FragCoord.xy+uTime)-0.5)*uNoise;
@@ -85,34 +82,6 @@ type DarkVeilProps = {
   scanlineFrequency?: number;
   warpAmount?: number;
   resolutionScale?: number;
-  tintColor?: string;
-  tintStrength?: number;
-};
-
-const hexToRgb = (value: string) => {
-  const normalized = value.replace('#', '').trim();
-  if (![3, 6].includes(normalized.length)) {
-    return [1, 1, 1] as const;
-  }
-
-  const expanded =
-    normalized.length === 3
-      ? normalized
-          .split('')
-          .map((part) => part + part)
-          .join('')
-      : normalized;
-
-  const int = Number.parseInt(expanded, 16);
-  if (Number.isNaN(int)) {
-    return [1, 1, 1] as const;
-  }
-
-  return [
-    ((int >> 16) & 255) / 255,
-    ((int >> 8) & 255) / 255,
-    (int & 255) / 255
-  ] as const;
 };
 
 export default function DarkVeil({
@@ -122,9 +91,7 @@ export default function DarkVeil({
   speed = 0.5,
   scanlineFrequency = 0,
   warpAmount = 0,
-  resolutionScale = 1,
-  tintColor = '#ffffff',
-  tintStrength = 0
+  resolutionScale = 1
 }: DarkVeilProps) {
   const ref = useRef<HTMLCanvasElement | null>(null);
 
@@ -134,8 +101,6 @@ export default function DarkVeil({
     if (!canvas || !parent) return;
     let frame = 0;
     let cleanup = () => {};
-
-    const [tintR, tintG, tintB] = hexToRgb(tintColor);
 
     try {
       const renderer = new Renderer({
@@ -157,9 +122,7 @@ export default function DarkVeil({
           uNoise: { value: noiseIntensity },
           uScan: { value: scanlineIntensity },
           uScanFreq: { value: scanlineFrequency },
-          uWarp: { value: warpAmount },
-          uTintColor: { value: [tintR, tintG, tintB] },
-          uTintStrength: { value: tintStrength }
+          uWarp: { value: warpAmount }
         }
       });
 
@@ -183,8 +146,6 @@ export default function DarkVeil({
         program.uniforms.uScan.value = scanlineIntensity;
         program.uniforms.uScanFreq.value = scanlineFrequency;
         program.uniforms.uWarp.value = warpAmount;
-        program.uniforms.uTintColor.value = [tintR, tintG, tintB];
-        program.uniforms.uTintStrength.value = tintStrength;
         renderer.render({ scene: mesh });
         frame = requestAnimationFrame(loop);
       };
@@ -203,7 +164,7 @@ export default function DarkVeil({
       }
       const host = parent as HTMLElement;
       host.style.background =
-        'radial-gradient(circle at 25% 20%, rgba(255, 168, 76, 0.35), rgba(231, 231, 234, 0) 42%), radial-gradient(circle at 80% 85%, rgba(255, 119, 0, 0.28), rgba(231, 231, 234, 0) 36%)';
+        'radial-gradient(circle at 25% 20%, rgba(110, 96, 176, 0.35), rgba(231, 231, 234, 0) 42%), radial-gradient(circle at 80% 85%, rgba(62, 48, 130, 0.28), rgba(231, 231, 234, 0) 36%)';
       // eslint-disable-next-line no-console
       console.warn('DarkVeil fallback activated:', error);
     }
@@ -211,7 +172,7 @@ export default function DarkVeil({
     return () => {
       cleanup();
     };
-  }, [hueShift, noiseIntensity, scanlineIntensity, speed, scanlineFrequency, warpAmount, resolutionScale, tintColor, tintStrength]);
+  }, [hueShift, noiseIntensity, scanlineIntensity, speed, scanlineFrequency, warpAmount, resolutionScale]);
 
   return <canvas ref={ref} className="darkveil-canvas" />;
 }
