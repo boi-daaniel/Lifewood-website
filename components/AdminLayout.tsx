@@ -340,13 +340,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                                 <p className="text-xs uppercase tracking-[0.3em] text-white/40">Edit Profile</p>
                                 <h2 className="mt-1 text-lg font-semibold">Customize Profile</h2>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setProfileOpen(false)}
-                                className="text-sm text-white/60 hover:text-white"
-                            >
-                                Close
-                            </button>
                         </div>
                         <div className="px-6 py-5">
                         <div className="flex flex-wrap gap-6">
