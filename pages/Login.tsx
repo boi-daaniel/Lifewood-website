@@ -241,7 +241,19 @@ export const Login: React.FC = () => {
                     transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                     className="grid gap-3 rounded-[2rem] border border-black/10 bg-transparent p-2"
                 >
-                    <div className="rounded-[1.7rem] border border-white/10 bg-[#046241] p-6 md:p-8">
+                    <div className="relative overflow-hidden rounded-[1.7rem] border border-white/10 bg-black p-6 md:p-8">
+                        <div className="pointer-events-none absolute inset-0 opacity-80">
+                            <DarkVeil
+                                hueShift={30}
+                                noiseIntensity={0.08}
+                                scanlineIntensity={0.06}
+                                speed={0.6}
+                                scanlineFrequency={1.6}
+                                warpAmount={0.2}
+                            />
+                            <div className="absolute inset-0 bg-black/40" />
+                        </div>
+                        <div className="relative z-10">
                         <Link to="/" className="inline-flex items-center gap-2 text-sm text-white transition-colors hover:text-white">
                             <ArrowLeft size={16} />
                             Back
@@ -457,6 +469,7 @@ export const Login: React.FC = () => {
                                     )}
                                 </div>
                             </motion.div>
+                        </div>
                         </div>
                     </div>
 

@@ -17,6 +17,7 @@ type OfferTypeConfig = {
     objectiveText: string;
     detailImage: string;
     detailImageAlt: string;
+    showHeroArt?: boolean;
     midTitle?: string;
     midSubtitle?: string;
     showcaseMode?: 'stack' | 'flying';
@@ -257,6 +258,7 @@ const OfferTypePage: React.FC<OfferTypeConfig> = ({
     objectiveText,
     detailImage,
     detailImageAlt,
+    showHeroArt = true,
     midTitle,
     midSubtitle,
     showcaseMode = 'stack',
@@ -290,7 +292,9 @@ const OfferTypePage: React.FC<OfferTypeConfig> = ({
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.45 }}
-                        className="relative overflow-hidden bg-[#e7e1cf] rounded-[2rem] p-8 md:p-12 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center"
+                        className={`relative overflow-hidden bg-[#e7e1cf] rounded-[2rem] p-8 md:p-12 grid gap-8 items-center ${
+                            showHeroArt ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'
+                        }`}
                     >
                         <HeroBackgroundEffect />
                         <div className="relative z-10">
@@ -304,9 +308,11 @@ const OfferTypePage: React.FC<OfferTypeConfig> = ({
                                 <ContactUsButton />
                             </div>
                         </div>
-                        <div className="relative z-10">
-                            <HeroArtShell />
-                        </div>
+                        {showHeroArt && (
+                            <div className="relative z-10">
+                                <HeroArtShell />
+                            </div>
+                        )}
                     </motion.div>
                 </MagicBentoCard>
             ) : (
@@ -315,7 +321,9 @@ const OfferTypePage: React.FC<OfferTypeConfig> = ({
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.45 }}
-                    className="relative overflow-hidden bg-[#e7e1cf] rounded-[2rem] p-8 md:p-12 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center"
+                    className={`relative overflow-hidden bg-[#e7e1cf] rounded-[2rem] p-8 md:p-12 grid gap-8 items-center ${
+                        showHeroArt ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'
+                    }`}
                 >
                     <HeroBackgroundEffect />
                     <div className="relative z-10">
@@ -329,9 +337,11 @@ const OfferTypePage: React.FC<OfferTypeConfig> = ({
                             <ContactUsButton />
                         </div>
                     </div>
-                    <div className="relative z-10">
-                        <HeroArtShell />
-                    </div>
+                    {showHeroArt && (
+                        <div className="relative z-10">
+                            <HeroArtShell />
+                        </div>
+                    )}
                 </motion.div>
             )}
 
@@ -474,6 +484,7 @@ const OfferTypePage: React.FC<OfferTypeConfig> = ({
 export const WhatWeOfferTypeA: React.FC = () => (
     <OfferTypePage
         heroTitle="Type A - Data Servicing"
+        showHeroArt={false}
         heroDescription="End-to-end data services specializing in multi-language datasets, including document capture, data collection and preparation, extraction, cleaning, labeling, annotation, quality assurance, and formatting."
         highlights={[
             'Multi-language genealogy documents, newspapers, and archives to facilitate global ancestry research',
@@ -510,6 +521,7 @@ export const WhatWeOfferTypeA: React.FC = () => (
 export const WhatWeOfferTypeB: React.FC = () => (
     <OfferTypePage
         heroTitle="Type B - Horizontal LLM Data"
+        showHeroArt={false}
         heroDescription="Comprehensive AI data solutions that cover the entire spectrum from data collection and annotation to model testing. Creating multimodal datasets for deep learning, large language models."
         highlights={[
             'Voice, image and text for Apple Intelligence',
@@ -546,6 +558,7 @@ export const WhatWeOfferTypeB: React.FC = () => (
 export const WhatWeOfferTypeC: React.FC = () => (
     <OfferTypePage
         heroTitle="Type C - Vertical LLM Data"
+        showHeroArt={false}
         heroDescription="AI data solutions across specific industry verticals including autonomous driving data annotation, in-vehicle data collection and specialized data services for industry, enterprise or private LLM."
         highlights={[
             'Autonomous driving and Smart cockpit datasets for Driver Monitoring System',

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import './Careers.css';
 import './ElegantTextEffects.css';
 import { supabase } from '../lib/supabaseClient';
+import DarkVeil from '../components/DarkVeil';
 
 const positions = [
     'Casual Video Models (Video Data Collection)',
@@ -173,8 +174,8 @@ export const Careers: React.FC = () => {
             className="elegant-textfx bg-[#f3f3f3] dark:bg-brand-green min-h-screen pt-20 md:pt-24 pb-24 transition-colors duration-300 dark:[&_h1]:text-white dark:[&_h2]:text-white dark:[&_h3]:text-white dark:[&_h4]:text-white dark:[&_p]:text-gray-200 dark:[&_blockquote]:text-gray-100"
         >
             <section className="container mx-auto px-6">
-                <div className="grid grid-cols-1 lg:grid-cols-[1.1fr,1fr] gap-10 items-start">
-                    <div className="bg-[#e7e1cf] rounded-[2rem] p-8 md:p-12">
+                <div className="grid grid-cols-1 lg:grid-cols-[1.1fr,1fr] gap-10 items-stretch">
+                    <div className="bg-[#e7e1cf] rounded-[2rem] p-8 md:p-12 h-full flex flex-col">
                         <h1 className="text-5xl md:text-6xl font-semibold text-black leading-[0.96]">
                             Apply to Lifewood
                         </h1>
@@ -182,25 +183,37 @@ export const Careers: React.FC = () => {
                             Join a global team delivering impactful AI data solutions. Submit your application and our
                             team will reach out shortly.
                         </p>
-                        <div className="mt-8 rounded-[1.5rem] overflow-hidden shadow-[0_18px_40px_rgba(15,23,42,0.16)]">
+                        <div className="mt-8 rounded-[1.5rem] overflow-hidden shadow-[0_18px_40px_rgba(15,23,42,0.16)] flex-1">
                             <img
                                 src="https://framerusercontent.com/images/DF2gzPqqVW8QGp7Jxwp1y5257xk.jpg?scale-down-to=2048&width=6000&height=4000"
                                 alt="Lifewood team"
-                                className="w-full h-[260px] md:h-[360px] object-cover"
+                                className="w-full h-full object-cover"
                             />
                         </div>
                     </div>
 
                     <form
                         onSubmit={handleSubmit}
-                        className="rounded-[2rem] bg-[#0a1f17] p-6 md:p-8 shadow-[0_18px_46px_rgba(5,24,18,0.42)]"
+                        className="relative overflow-hidden rounded-[2rem] bg-black p-6 md:p-8 shadow-[0_18px_46px_rgba(5,24,18,0.42)] h-full"
                     >
-                        <h2 className="text-2xl font-semibold text-white">Application Form</h2>
-                        <p className="mt-2 text-sm text-white/70">
-                            Fields marked with * are required.
-                        </p>
+                        <div className="pointer-events-none absolute inset-0">
+                            <DarkVeil
+                                hueShift={30}
+                                noiseIntensity={0.05}
+                                scanlineIntensity={0.04}
+                                speed={0.45}
+                                scanlineFrequency={1.3}
+                                warpAmount={0.16}
+                            />
+                            <div className="absolute inset-0 bg-black/55" />
+                        </div>
+                        <div className="relative z-10">
+                            <h2 className="text-2xl font-semibold text-white">Application Form</h2>
+                            <p className="mt-2 text-sm text-white/70">
+                                Fields marked with * are required.
+                            </p>
 
-                        <div className="mt-6 grid gap-4">
+                            <div className="mt-6 grid gap-4">
                             <div>
                                 <label className="text-white/90 text-sm font-medium">Full name *</label>
                                 <input
@@ -282,7 +295,7 @@ export const Careers: React.FC = () => {
                                         value={form.position}
                                         onChange={handleChange('position')}
                                         required
-                                        className="mt-2 w-full h-11 rounded-lg bg-black/20 text-white px-4 outline-none border border-white/10 focus:border-white/30"
+                                        className="mt-2 w-full h-11 rounded-lg bg-white text-black px-4 outline-none border border-white/10 focus:border-white/30"
                                     >
                                         <option value="">Select a role</option>
                                         {positions.map((role) => (
@@ -305,25 +318,26 @@ export const Careers: React.FC = () => {
                             </div>
                         </div>
 
-                        {status && (
-                            <div
-                                className={`mt-4 rounded-lg border px-3 py-2 text-xs ${
-                                    status.type === 'success'
-                                        ? 'border-emerald-300/40 bg-emerald-200/10 text-emerald-100'
-                                        : 'border-red-300/40 bg-red-200/10 text-red-100'
-                                }`}
-                            >
-                                {status.message}
-                            </div>
-                        )}
+                            {status && (
+                                <div
+                                    className={`mt-4 rounded-lg border px-3 py-2 text-xs ${
+                                        status.type === 'success'
+                                            ? 'border-emerald-300/40 bg-emerald-200/10 text-emerald-100'
+                                            : 'border-red-300/40 bg-red-200/10 text-red-100'
+                                    }`}
+                                >
+                                    {status.message}
+                                </div>
+                            )}
 
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="mt-5 w-full h-11 rounded-full bg-[#0a2f22] hover:bg-[#0d3b2b] text-white font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70"
-                        >
-                            {isSubmitting ? 'Submitting...' : 'Submit Application'}
-                        </button>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="mt-5 w-full h-11 rounded-full bg-[#0a2f22] hover:bg-[#0d3b2b] text-white font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                                {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                            </button>
+                        </div>
                     </form>
                 </div>
             </section>

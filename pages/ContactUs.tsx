@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import emailjs from '@emailjs/browser';
 import { supabase } from '../lib/supabaseClient';
+import DarkVeil from '../components/DarkVeil';
 
 export const ContactUs: React.FC = () => {
     const [name, setName] = useState('');
@@ -109,14 +110,18 @@ export const ContactUs: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="rounded-[1.4rem] p-4 md:p-5 bg-[#0a1f17] shadow-[0_18px_46px_rgba(5,24,18,0.42)] overflow-hidden relative min-h-[360px] md:min-h-[520px]">
-                        <div
-                            className="absolute inset-0 opacity-70"
-                            style={{
-                                background:
-                                    'radial-gradient(circle at 25% 20%, rgba(139,191,122,0.32), transparent 38%), radial-gradient(circle at 75% 80%, rgba(95,156,108,0.3), transparent 40%), linear-gradient(120deg, rgba(24,55,42,0.9), rgba(13,33,27,0.96))'
-                            }}
-                        />
+                    <div className="rounded-[1.4rem] p-4 md:p-5 bg-black shadow-[0_18px_46px_rgba(5,24,18,0.42)] overflow-hidden relative min-h-[360px] md:min-h-[520px]">
+                        <div className="pointer-events-none absolute inset-0">
+                            <DarkVeil
+                                hueShift={30}
+                                noiseIntensity={0.05}
+                                scanlineIntensity={0.04}
+                                speed={0.45}
+                                scanlineFrequency={1.3}
+                                warpAmount={0.16}
+                            />
+                            <div className="absolute inset-0 bg-black/55" />
+                        </div>
 
                         <form
                             onSubmit={handleSubmit}
