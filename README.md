@@ -1,5 +1,3 @@
-<div align="center">
-
 ## Run Locally
 
 **Prerequisites:**  Node.js
