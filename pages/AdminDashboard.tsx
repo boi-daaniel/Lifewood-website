@@ -4,6 +4,7 @@ import { AdminLayout } from '../components/AdminLayout';
 import DarkVeil from '../components/DarkVeil';
 import { supabase } from '../lib/supabaseClient';
 import { getTimeZoneForCountry } from '../lib/countries';
+import { getSoftDeletedIds, SOFT_DELETE_KEYS } from '../lib/adminSoftDelete';
 
 export const AdminDashboard: React.FC = () => {
     const [currentDateTime, setCurrentDateTime] = useState('');
@@ -67,35 +68,34 @@ export const AdminDashboard: React.FC = () => {
                 setAdminTimeZone(tz);
             }
 
-            const [{ count: totalCount, error: totalError }, { count: unreadCount, error: unreadError }] =
+            const hiddenMessageIds = getSoftDeletedIds(SOFT_DELETE_KEYS.contactMessages);
+            const hiddenApplicantIds = getSoftDeletedIds(SOFT_DELETE_KEYS.applicants);
+
+            const [{ data: messageRows, error: messageError }, { data: applicantRows, error: appError }] =
                 await Promise.all([
-                    supabase.from('contact_messages').select('id', { count: 'exact', head: true }),
                     supabase
                         .from('contact_messages')
-                        .select('id', { count: 'exact', head: true })
-                        .eq('is_read', false)
+                        .select('id, name, created_at, is_read')
+                        .order('created_at', { ascending: false }),
+                    supabase
+                        .from('career_applications')
+                        .select('id')
                 ]);
-
-            const { data: latestMessage } = await supabase
-                .from('contact_messages')
-                .select('name, created_at')
-                .order('created_at', { ascending: false })
-                .limit(1);
-
-            const { count: appCount, error: appError } = await supabase
-                .from('career_applications')
-                .select('id', { count: 'exact', head: true });
 
             if (!mounted) return;
 
+            const visibleMessages = (messageRows ?? []).filter((item) => !hiddenMessageIds.includes(item.id));
+            const latestMessage = visibleMessages[0];
+            const visibleApplicants = (applicantRows ?? []).filter((item) => !hiddenApplicantIds.includes(item.id));
+
             setMessageStats({
-                total: totalError ? 0 : totalCount ?? 0,
-                unread: unreadError ? 0 : unreadCount ?? 0,
-                latestSender: latestMessage?.[0]?.name || 'No messages yet',
-                latestTimestamp: latestMessage?.[0]?.created_at || ''
+                total: messageError ? 0 : visibleMessages.length,
+                unread: messageError ? 0 : visibleMessages.filter((item) => !item.is_read).length,
+                latestSender: latestMessage?.name || 'No messages yet',
+                latestTimestamp: latestMessage?.created_at || ''
             });
 
-            setApplicationsTotal(appError ? null : appCount ?? 0);
+            setApplicationsTotal(appError ? null : visibleApplicants.length);
             setLoadingStats(false);
         };
 

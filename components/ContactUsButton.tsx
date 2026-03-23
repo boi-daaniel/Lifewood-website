@@ -10,7 +10,7 @@ type ContactUsButtonProps = {
 export const ContactUsButton: React.FC<ContactUsButtonProps> = ({ className = '', label = 'Contact us' }) => {
     return (
         <Link
-            to="/contact-us"
+            to="/careers?view=message"
             className={`inline-flex items-center gap-2.5 rounded-full bg-[#f2b142] text-[#0d3a2a] px-4 py-1.5 font-medium hover:brightness-95 transition ${className}`.trim()}
         >
             <span>{label}</span>

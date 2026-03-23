@@ -40,7 +40,7 @@ const buildReply = (rawInput: string): Omit<ChatMessage, 'id' | 'sender'> => {
         return {
             text: 'Pricing depends on scope, volume, and delivery model. I can direct you to our support team for a tailored quote.',
             ctaLabel: 'Contact Support',
-            ctaPath: '/contact-us',
+            ctaPath: '/careers?view=message',
             quickReplies: ['Talk to support', 'AI Services']
         };
     }
@@ -75,8 +75,8 @@ const buildReply = (rawInput: string): Omit<ChatMessage, 'id' | 'sender'> => {
     if (containsAny(input, [/support/, /human/, /agent/, /contact/, /help/])) {
         return {
             text: 'I can connect you with our customer support team.',
-            ctaLabel: 'Go to Contact Us',
-            ctaPath: '/contact-us',
+            ctaLabel: 'Open Message Us',
+            ctaPath: '/careers?view=message',
             quickReplies: ['AI Services', 'Careers']
         };
     }

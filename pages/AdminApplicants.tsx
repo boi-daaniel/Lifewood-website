@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '../components/AdminLayout';
 import { supabase } from '../lib/supabaseClient';
+import { addSoftDeletedId, getSoftDeletedIds, SOFT_DELETE_KEYS } from '../lib/adminSoftDelete';
 
 type Applicant = {
     id: string;
@@ -55,7 +56,12 @@ export const AdminApplicants: React.FC = () => {
     const [viewApplicant, setViewApplicant] = useState<Applicant | null>(null);
     const [resumePreview, setResumePreview] = useState<{ applicant: Applicant; url: string } | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [hiddenApplicantIds, setHiddenApplicantIds] = useState<string[]>([]);
     const pageSize = 5;
+
+    useEffect(() => {
+        setHiddenApplicantIds(getSoftDeletedIds(SOFT_DELETE_KEYS.applicants));
+    }, []);
 
     useEffect(() => {
         let mounted = true;
@@ -98,7 +104,9 @@ export const AdminApplicants: React.FC = () => {
         timeStyle: 'short'
     });
 
-    const filtered = applications.filter((item) => {
+    const visibleApplications = applications.filter((item) => !hiddenApplicantIds.includes(item.id));
+
+    const filtered = visibleApplications.filter((item) => {
         const matchesStatus = statusFilter === 'All' || (item.status ?? 'New') === statusFilter;
         if (!matchesStatus) return false;
         if (!searchTerm.trim()) return true;
@@ -244,26 +252,12 @@ export const AdminApplicants: React.FC = () => {
     };
 
     const handleDelete = async (application: Applicant) => {
-        if (!supabase) return;
-        const confirmed = window.confirm(`Delete application from ${application.name}? This cannot be undone.`);
+        const confirmed = window.confirm(`Hide application from ${application.name} in the admin UI? It will remain in the database.`);
         if (!confirmed) return;
 
         setDeletingId(application.id);
         setError(null);
-
-        const { error: deleteError } = await supabase
-            .from('career_applications')
-            .delete()
-            .eq('id', application.id);
-
-        if (deleteError) {
-            setError(deleteError.message);
-            setDeletingId(null);
-            return;
-        }
-
-        await supabase.storage.from('resumes').remove([application.resume_path]);
-        setApplications((prev) => prev.filter((item) => item.id !== application.id));
+        setHiddenApplicantIds(addSoftDeletedId(SOFT_DELETE_KEYS.applicants, application.id));
         if (viewApplicant?.id === application.id) {
             setViewApplicant(null);
         }
@@ -323,7 +317,7 @@ export const AdminApplicants: React.FC = () => {
                         <div className="px-6 py-6 text-sm text-red-600">{error}</div>
                     )}
 
-                    {!isLoading && !error && applications.length === 0 && (
+                    {!isLoading && !error && visibleApplications.length === 0 && (
                         <div className="px-6 py-10 text-sm text-black/60">
                             No applications yet. New submissions will appear here.
                         </div>
@@ -456,7 +450,7 @@ export const AdminApplicants: React.FC = () => {
                         </div>
                     )}
 
-                    {!isLoading && !error && applications.length > 0 && filtered.length === 0 && (
+                    {!isLoading && !error && visibleApplications.length > 0 && filtered.length === 0 && (
                         <div className="px-6 py-10 text-sm text-black/60">
                             No applicants match your search.
                         </div>

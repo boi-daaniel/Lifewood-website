@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '../components/AdminLayout';
 import { supabase } from '../lib/supabaseClient';
+import { getSoftDeletedIds, SOFT_DELETE_KEYS } from '../lib/adminSoftDelete';
 
 type MetricState = {
     totalMessages: number;
@@ -60,44 +61,35 @@ export const AdminAnalytics: React.FC = () => {
                 return;
             }
 
-            const [
-                { count: totalMessages },
-                { count: unreadMessages },
-                { count: totalApplicants },
-                latestMessageResult,
-                latestApplicantResult
-            ] = await Promise.all([
-                supabase.from('contact_messages').select('id', { count: 'exact', head: true }),
+            const hiddenMessageIds = getSoftDeletedIds(SOFT_DELETE_KEYS.contactMessages);
+            const hiddenApplicantIds = getSoftDeletedIds(SOFT_DELETE_KEYS.applicants);
+
+            const [messageResult, applicantResult] = await Promise.all([
                 supabase
                     .from('contact_messages')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('is_read', false),
-                supabase.from('career_applications').select('id', { count: 'exact', head: true }),
-                supabase
-                    .from('contact_messages')
-                    .select('name, created_at')
-                    .order('created_at', { ascending: false })
-                    .limit(1),
+                    .select('id, name, created_at, is_read')
+                    .order('created_at', { ascending: false }),
                 supabase
                     .from('career_applications')
-                    .select('name, created_at')
+                    .select('id, name, created_at')
                     .order('created_at', { ascending: false })
-                    .limit(1)
             ]);
 
             if (!mounted) return;
 
-            if (latestMessageResult.error || latestApplicantResult.error) {
-                setError(latestMessageResult.error?.message ?? latestApplicantResult.error?.message ?? null);
+            if (messageResult.error || applicantResult.error) {
+                setError(messageResult.error?.message ?? applicantResult.error?.message ?? null);
             }
 
-            const latestMessageName = latestMessageResult.data?.[0]?.name ?? '--';
-            const latestApplicantName = latestApplicantResult.data?.[0]?.name ?? '--';
+            const visibleMessages = (messageResult.data ?? []).filter((item) => !hiddenMessageIds.includes(item.id));
+            const visibleApplicants = (applicantResult.data ?? []).filter((item) => !hiddenApplicantIds.includes(item.id));
+            const latestMessageName = visibleMessages[0]?.name ?? '--';
+            const latestApplicantName = visibleApplicants[0]?.name ?? '--';
 
             setMetrics({
-                totalMessages: totalMessages ?? 0,
-                unreadMessages: unreadMessages ?? 0,
-                totalApplicants: totalApplicants ?? 0,
+                totalMessages: visibleMessages.length,
+                unreadMessages: visibleMessages.filter((item) => !item.is_read).length,
+                totalApplicants: visibleApplicants.length,
                 latestMessage: latestMessageName,
                 latestApplicant: latestApplicantName
             });

@@ -14,7 +14,7 @@ export const Footer: React.FC = () => {
         { label: 'About Us', to: '/about-us' },
         { label: 'Careers', to: '/careers' },
         { label: 'Philanthropy', to: '/philanthropy-impact' },
-        { label: 'Contact', to: '/contact-us' }
+        { label: 'Contact', to: '/careers?view=message' }
     ];
 
     const serviceLinks = [

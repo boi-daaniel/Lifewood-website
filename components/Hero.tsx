@@ -42,7 +42,7 @@ export const Hero: React.FC = () => {
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <Link to="/contact-us" className="px-8 py-4 rounded-full bg-brand-green dark:bg-white dark:text-brand-green text-white font-medium hover:bg-green-900 dark:hover:bg-gray-100 transition-all hover:scale-105 shadow-lg shadow-green-900/20 flex items-center gap-2 w-full sm:w-auto justify-center">
+                        <Link to="/careers?view=message" className="px-8 py-4 rounded-full bg-brand-green dark:bg-white dark:text-brand-green text-white font-medium hover:bg-green-900 dark:hover:bg-gray-100 transition-all hover:scale-105 shadow-lg shadow-green-900/20 flex items-center gap-2 w-full sm:w-auto justify-center">
                             Contact Us
                             <ArrowRight size={18} />
                         </Link>

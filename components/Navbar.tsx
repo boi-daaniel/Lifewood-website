@@ -35,7 +35,6 @@ const navItems: NavItem[] = [
     },
     { label: 'Philanthropy & Impact', href: '/philanthropy-impact' },
     { label: 'Careers', href: '/careers' },
-    { label: 'Contact Us', href: '/contact-us' },
     { label: 'Internal News', href: '/internal-news' },
 ];
 

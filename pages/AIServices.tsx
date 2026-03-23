@@ -522,7 +522,7 @@ export const AIServices: React.FC = () => {
                         We provide scalable, secure, and compliant data solutions that drive AI innovation across industries.
                     </p>
                     
-                    <Link to="/contact-us" className="inline-flex items-center gap-2 text-gray-900 dark:text-white font-medium hover:gap-4 transition-all bg-gray-100 dark:bg-white/10 px-6 py-3 rounded-full">
+                    <Link to="/careers?view=message" className="inline-flex items-center gap-2 text-gray-900 dark:text-white font-medium hover:gap-4 transition-all bg-gray-100 dark:bg-white/10 px-6 py-3 rounded-full">
                         Get started <div className="bg-black dark:bg-white text-white dark:text-black p-2 rounded-full"><ArrowRight size={16} /></div>
                     </Link>
                 </motion.div>

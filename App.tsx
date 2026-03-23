@@ -19,7 +19,6 @@ import { WhatWeOfferTypeA, WhatWeOfferTypeB, WhatWeOfferTypeC } from './pages/Wh
 import { WhatWeOfferTypeD } from './pages/WhatWeOfferTypeD';
 import { PhilanthropyImpact } from './pages/PhilanthropyImpact';
 import { Careers } from './pages/Careers';
-import { ContactUs } from './pages/ContactUs';
 import { InternalNews } from './pages/InternalNews';
 import { Login } from './pages/Login';
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -123,7 +122,7 @@ function AnimatedRoutes() {
           <Route path="/offices" element={<Offices />} />
           <Route path="/philanthropy-impact" element={<PhilanthropyImpact />} />
           <Route path="/careers" element={<Careers />} />
-          <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/contact-us" element={<Navigate to="/careers?view=message" replace />} />
           <Route path="/internal-news" element={<InternalNews />} />
           <Route path="/admin/login" element={<Login />} />
           <Route path="/admin/*" element={<RequireAdmin />}>

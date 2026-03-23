@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import emailjs from '@emailjs/browser';
 import { AdminLayout } from '../components/AdminLayout';
 import { supabase } from '../lib/supabaseClient';
+import { addSoftDeletedId, getSoftDeletedIds, SOFT_DELETE_KEYS } from '../lib/adminSoftDelete';
 
 type ContactMessage = {
     id: string;
@@ -29,6 +30,11 @@ export const AdminInbox: React.FC = () => {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [hiddenMessageIds, setHiddenMessageIds] = useState<string[]>([]);
+
+    useEffect(() => {
+        setHiddenMessageIds(getSoftDeletedIds(SOFT_DELETE_KEYS.contactMessages));
+    }, []);
 
     useEffect(() => {
         let mounted = true;
@@ -91,7 +97,9 @@ export const AdminInbox: React.FC = () => {
         }
     };
 
-    const filteredMessages = messages.filter((item) => {
+    const visibleMessages = messages.filter((item) => !hiddenMessageIds.includes(item.id));
+
+    const filteredMessages = visibleMessages.filter((item) => {
         if (filterStatus === 'unread' && item.is_read) return false;
         if (filterStatus === 'read' && !item.is_read) return false;
         if (!searchTerm.trim()) return true;
@@ -118,7 +126,7 @@ export const AdminInbox: React.FC = () => {
         setCurrentPage(1);
     }, [searchTerm, filterStatus, sortOrder]);
 
-    const unreadCount = messages.filter((item) => !item.is_read).length;
+    const unreadCount = visibleMessages.filter((item) => !item.is_read).length;
     const pageSize = 10;
     const totalPages = Math.max(1, Math.ceil(sortedMessages.length / pageSize));
     const safePage = Math.min(currentPage, totalPages);
@@ -182,25 +190,12 @@ export const AdminInbox: React.FC = () => {
     };
 
     const handleDelete = async (message: ContactMessage) => {
-        if (!supabase) return;
-        const confirmed = window.confirm(`Delete message from ${message.name}? This cannot be undone.`);
+        const confirmed = window.confirm(`Hide message from ${message.name} in the admin UI? It will remain in the database.`);
         if (!confirmed) return;
 
         setDeletingId(message.id);
         setError(null);
-
-        const { error: deleteError } = await supabase
-            .from('contact_messages')
-            .delete()
-            .eq('id', message.id);
-
-        if (deleteError) {
-            setError(deleteError.message);
-            setDeletingId(null);
-            return;
-        }
-
-        setMessages((prev) => prev.filter((item) => item.id !== message.id));
+        setHiddenMessageIds(addSoftDeletedId(SOFT_DELETE_KEYS.contactMessages, message.id));
         setDeletingId(null);
     };
 
@@ -263,7 +258,7 @@ export const AdminInbox: React.FC = () => {
                         <div className="px-6 py-6 text-sm text-red-600">{error}</div>
                     )}
 
-                    {!isLoading && !error && messages.length === 0 && (
+                    {!isLoading && !error && visibleMessages.length === 0 && (
                         <div className="px-6 py-10 text-sm text-black/60">
                             No messages yet. New contact form submissions will appear here.
                         </div>
@@ -381,7 +376,7 @@ export const AdminInbox: React.FC = () => {
                         </div>
                     )}
 
-                    {!isLoading && !error && messages.length > 0 && sortedMessages.length === 0 && (
+                    {!isLoading && !error && visibleMessages.length > 0 && sortedMessages.length === 0 && (
                         <div className="px-6 py-10 text-sm text-black/60">
                             No messages match your current search or filters.
                         </div>
