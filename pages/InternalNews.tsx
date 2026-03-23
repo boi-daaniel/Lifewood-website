@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import emailjs from '@emailjs/browser';
 import { motion } from 'framer-motion';
 import { BellRing, Mail, Newspaper } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
@@ -22,11 +23,16 @@ export const InternalNews: React.FC = () => {
             return;
         }
 
+        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined;
+        const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined;
+        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined;
+        const subscriberEmail = email.trim().toLowerCase();
+
         setIsSubmitting(true);
 
         try {
             const { error } = await supabase.from('newsletter_subscribers').insert({
-                email: email.trim().toLowerCase()
+                email: subscriberEmail
             });
 
             if (error) {
@@ -36,9 +42,26 @@ export const InternalNews: React.FC = () => {
                     throw error;
                 }
             } else {
+                if (serviceId && publicKey && templateId) {
+                    await emailjs.send(
+                        serviceId,
+                        templateId,
+                        {
+                            to_email: subscriberEmail,
+                            to_name: subscriberEmail,
+                            subject: 'Thanks for subscribing to Lifewood Internal News',
+                            message:
+                                'Thanks for subscribing to Lifewood Internal News. You will now receive the latest news, updates, and announcements in your inbox.',
+                            from_name: 'Lifewood',
+                            email_type: 'newsletter_subscriber'
+                        },
+                        publicKey
+                    );
+                }
+
                 setStatus({
                     type: 'success',
-                    message: 'Thanks for subscribing. You’ll receive Lifewood updates in your inbox.'
+                    message: "Thanks for subscribing. You'll receive Lifewood updates in your inbox."
                 });
                 setEmail('');
             }
