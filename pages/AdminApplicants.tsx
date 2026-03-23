@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import emailjs from '@emailjs/browser';
 import { AdminLayout } from '../components/AdminLayout';
 import { supabase } from '../lib/supabaseClient';
 import { addSoftDeletedId, getSoftDeletedIds, SOFT_DELETE_KEYS } from '../lib/adminSoftDelete';
@@ -39,6 +40,8 @@ const statusClasses: Record<string, string> = {
     Accepted: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     Rejected: 'border-rose-200 bg-rose-50 text-rose-700'
 };
+
+const terminalStatuses = new Set(['Accepted', 'Rejected']);
 
 export const AdminApplicants: React.FC = () => {
     const [applications, setApplications] = useState<Applicant[]>([]);
@@ -207,6 +210,7 @@ export const AdminApplicants: React.FC = () => {
         setIsSaving(true);
         setError(null);
 
+        const previousStatus = editingApplicant.status ?? 'New';
         const payload = {
             name: editForm.name.trim(),
             email: editForm.email.trim(),
@@ -246,6 +250,54 @@ export const AdminApplicants: React.FC = () => {
                     : item
             )
         );
+
+        const nextStatus = payload.status;
+        const shouldSendDecisionEmail =
+            previousStatus !== nextStatus && terminalStatuses.has(nextStatus);
+
+        if (shouldSendDecisionEmail) {
+            const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined;
+            const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined;
+            const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined;
+
+            if (serviceId && publicKey && templateId) {
+                const decisionMessage =
+                    nextStatus === 'Accepted'
+                        ? `Hi ${payload.name},\n\nThank you for applying for the ${payload.position} role at Lifewood. We are pleased to let you know that your application has been accepted. Our team will contact you soon with the next steps.\n\nBest regards,\nLifewood`
+                        : `Hi ${payload.name},\n\nThank you for applying for the ${payload.position} role at Lifewood. After reviewing your application, we regret to inform you that you were not selected for this opportunity.\n\nWe appreciate your time and interest in Lifewood, and we encourage you to apply again for future openings that match your experience.\n\nBest regards,\nLifewood`;
+
+                try {
+                    await emailjs.send(
+                        serviceId,
+                        templateId,
+                        {
+                            to_email: payload.email,
+                            to_name: payload.name,
+                            subject: `Lifewood Application Update: ${nextStatus}`,
+                            message: decisionMessage,
+                            applicant_name: payload.name,
+                            applicant_email: payload.email,
+                            position: payload.position,
+                            application_status: nextStatus,
+                            from_name: 'Lifewood',
+                            email_type: nextStatus === 'Accepted' ? 'application_accepted' : 'application_rejected'
+                        },
+                        publicKey
+                    );
+                } catch (sendError) {
+                    setError(
+                        `Applicant status was updated, but the email notification could not be sent: ${
+                            sendError instanceof Error ? sendError.message : 'Unknown error'
+                        }`
+                    );
+                }
+            } else {
+                setError(
+                    'Applicant status was updated, but EmailJS is not fully configured so no notification email was sent.'
+                );
+            }
+        }
+
         setEditingApplicant(null);
         setEditForm(null);
         setIsSaving(false);
@@ -558,13 +610,6 @@ export const AdminApplicants: React.FC = () => {
                                 <p className="text-xs uppercase tracking-[0.3em] text-black/50">Resume Preview</p>
                                 <h2 className="mt-1 text-lg font-semibold text-black">{resumePreview.applicant.name}</h2>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setResumePreview(null)}
-                                className="text-sm text-black/60 hover:text-black"
-                            >
-                                Close
-                            </button>
                         </div>
                         <div className="flex-1 bg-black/[0.03] p-4">
                             <iframe
