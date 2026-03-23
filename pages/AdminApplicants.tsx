@@ -12,6 +12,7 @@ type Applicant = {
     address: string | null;
     country: string | null;
     position: string;
+    status: string | null;
     resume_path: string;
     created_at: string;
 };
@@ -25,6 +26,17 @@ type EditForm = {
     address: string;
     country: string;
     position: string;
+    status: string;
+};
+
+const applicantStatuses = ['New', 'Reviewing', 'Interview', 'Accepted', 'Rejected'] as const;
+
+const statusClasses: Record<string, string> = {
+    New: 'border-sky-200 bg-sky-50 text-sky-700',
+    Reviewing: 'border-amber-200 bg-amber-50 text-amber-700',
+    Interview: 'border-violet-200 bg-violet-50 text-violet-700',
+    Accepted: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    Rejected: 'border-rose-200 bg-rose-50 text-rose-700'
 };
 
 export const AdminApplicants: React.FC = () => {
@@ -32,6 +44,7 @@ export const AdminApplicants: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [viewingId, setViewingId] = useState<string | null>(null);
     const [editingApplicant, setEditingApplicant] = useState<Applicant | null>(null);
@@ -39,6 +52,8 @@ export const AdminApplicants: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+    const [viewApplicant, setViewApplicant] = useState<Applicant | null>(null);
+    const [resumePreview, setResumePreview] = useState<{ applicant: Applicant; url: string } | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 5;
 
@@ -57,7 +72,7 @@ export const AdminApplicants: React.FC = () => {
             const { data, error: fetchError } = await supabase
                 .from('career_applications')
                 .select(
-                    'id, name, email, contact_number, gender, age, address, country, position, resume_path, created_at'
+                    'id, name, email, contact_number, gender, age, address, country, position, status, resume_path, created_at'
                 )
                 .order('created_at', { ascending: false });
 
@@ -84,13 +99,16 @@ export const AdminApplicants: React.FC = () => {
     });
 
     const filtered = applications.filter((item) => {
+        const matchesStatus = statusFilter === 'All' || (item.status ?? 'New') === statusFilter;
+        if (!matchesStatus) return false;
         if (!searchTerm.trim()) return true;
         const query = searchTerm.toLowerCase();
         return (
             item.name.toLowerCase().includes(query) ||
             item.email.toLowerCase().includes(query) ||
             item.position.toLowerCase().includes(query) ||
-            (item.country ?? '').toLowerCase().includes(query)
+            (item.country ?? '').toLowerCase().includes(query) ||
+            (item.status ?? '').toLowerCase().includes(query)
         );
     });
 
@@ -100,7 +118,7 @@ export const AdminApplicants: React.FC = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm]);
+    }, [searchTerm, statusFilter]);
 
     useEffect(() => {
         setMenuOpenId(null);
@@ -128,7 +146,8 @@ export const AdminApplicants: React.FC = () => {
             age: editingApplicant.age !== null ? String(editingApplicant.age) : '',
             address: editingApplicant.address ?? '',
             country: editingApplicant.country ?? '',
-            position: editingApplicant.position
+            position: editingApplicant.position,
+            status: editingApplicant.status ?? 'New'
         };
     }, [editingApplicant]);
 
@@ -166,7 +185,7 @@ export const AdminApplicants: React.FC = () => {
             return;
         }
 
-        window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+        setResumePreview({ applicant: application, url: data.signedUrl });
         setViewingId(null);
     };
 
@@ -188,7 +207,8 @@ export const AdminApplicants: React.FC = () => {
             age: editForm.age ? Number(editForm.age) : null,
             address: editForm.address.trim() || null,
             country: editForm.country.trim() || null,
-            position: editForm.position.trim()
+            position: editForm.position.trim(),
+            status: editForm.status.trim() || 'New'
         };
 
         const { error: updateError } = await supabase
@@ -212,7 +232,8 @@ export const AdminApplicants: React.FC = () => {
                           gender: payload.gender,
                           age: payload.age,
                           address: payload.address,
-                          country: payload.country
+                          country: payload.country,
+                          status: payload.status
                       }
                     : item
             )
@@ -243,8 +264,16 @@ export const AdminApplicants: React.FC = () => {
 
         await supabase.storage.from('resumes').remove([application.resume_path]);
         setApplications((prev) => prev.filter((item) => item.id !== application.id));
+        if (viewApplicant?.id === application.id) {
+            setViewApplicant(null);
+        }
+        if (resumePreview?.applicant.id === application.id) {
+            setResumePreview(null);
+        }
         setDeletingId(null);
     };
+
+    const getStatusClasses = (status: string | null) => statusClasses[status ?? 'New'] ?? 'border-black/10 bg-black/5 text-black/70';
 
     return (
         <AdminLayout>
@@ -257,13 +286,27 @@ export const AdminApplicants: React.FC = () => {
                 </div>
 
                 <div className="mt-6">
-                    <input
-                        type="search"
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        placeholder="Search by name, email, position, or country..."
-                        className="h-11 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm text-black outline-none focus:border-black/30"
-                    />
+                    <div className="flex flex-col gap-3 md:flex-row">
+                        <input
+                            type="search"
+                            value={searchTerm}
+                            onChange={(event) => setSearchTerm(event.target.value)}
+                            placeholder="Search by name, email, position, country, or status..."
+                            className="h-11 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm text-black outline-none focus:border-black/30"
+                        />
+                        <select
+                            value={statusFilter}
+                            onChange={(event) => setStatusFilter(event.target.value)}
+                            className="h-11 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm text-black outline-none focus:border-black/30 md:w-[220px]"
+                        >
+                            <option value="All">All Statuses</option>
+                            {applicantStatuses.map((status) => (
+                                <option key={status} value={status}>
+                                    {status}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 <div className="mt-6 rounded-3xl border border-black/10 bg-white shadow-[0_20px_40px_rgba(0,0,0,0.12)]">
@@ -292,7 +335,14 @@ export const AdminApplicants: React.FC = () => {
                                 <div key={item.id} className="px-6 py-5">
                                     <div className="flex flex-wrap items-start justify-between gap-4">
                                         <div>
-                                            <p className="text-base font-semibold">{item.name}</p>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <p className="text-base font-semibold">{item.name}</p>
+                                                <span
+                                                    className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] ${getStatusClasses(item.status)}`}
+                                                >
+                                                    {item.status ?? 'New'}
+                                                </span>
+                                            </div>
                                             <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-black/60">
                                                 <a
                                                     href={`mailto:${item.email}`}
@@ -305,9 +355,6 @@ export const AdminApplicants: React.FC = () => {
                                                 )}
                                                 {item.country && <span>{item.country}</span>}
                                             </div>
-                                            <p className="mt-2 text-sm text-black/70">
-                                                Position: <span className="font-semibold">{item.position}</span>
-                                            </p>
                                             <p className="text-xs text-black/50">
                                                 Submitted {formatDate(item.created_at)}
                                             </p>
@@ -332,6 +379,17 @@ export const AdminApplicants: React.FC = () => {
                                                     className="absolute right-0 top-11 z-10 w-44 rounded-2xl border border-black/10 bg-white p-2 shadow-[0_20px_40px_rgba(0,0,0,0.16)]"
                                                     role="menu"
                                                 >
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setViewApplicant(item);
+                                                            setMenuOpenId(null);
+                                                        }}
+                                                        className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-black/70 transition hover:bg-black/5 hover:text-black"
+                                                        role="menuitem"
+                                                    >
+                                                        View
+                                                    </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => {
@@ -393,15 +451,6 @@ export const AdminApplicants: React.FC = () => {
                                             )}
                                         </div>
                                     </div>
-                                    {(item.gender || item.age || item.address) && (
-                                        <div className="mt-3 text-xs text-black/50">
-                                            {item.gender && <span>Gender: {item.gender}</span>}
-                                            {item.gender && (item.age || item.address) && <span className="mx-2">•</span>}
-                                            {item.age && <span>Age: {item.age}</span>}
-                                            {item.address && (item.gender || item.age) && <span className="mx-2">•</span>}
-                                            {item.address && <span>Address: {item.address}</span>}
-                                        </div>
-                                    )}
                                 </div>
                             ))}
                         </div>
@@ -440,6 +489,116 @@ export const AdminApplicants: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {viewApplicant && (
+                <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/60 px-4">
+                    <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.3em] text-black/50">Applicant</p>
+                                <h2 className="mt-1 text-xl font-semibold text-black">{viewApplicant.name}</h2>
+                            </div>
+                        </div>
+
+                        <div className="mt-5 grid gap-4 md:grid-cols-2">
+                            <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/40">Email</p>
+                                <p className="mt-2 text-sm text-black">{viewApplicant.email}</p>
+                            </div>
+                            <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/40">Contact</p>
+                                <p className="mt-2 text-sm text-black">{viewApplicant.contact_number ?? 'Not provided'}</p>
+                            </div>
+                            <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/40">Status</p>
+                                <div className="mt-2">
+                                    <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] ${getStatusClasses(viewApplicant.status)}`}>
+                                        {viewApplicant.status ?? 'New'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/40">Position</p>
+                                <p className="mt-2 text-sm text-black">{viewApplicant.position}</p>
+                            </div>
+                            <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/40">Country</p>
+                                <p className="mt-2 text-sm text-black">{viewApplicant.country ?? 'Not provided'}</p>
+                            </div>
+                            <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/40">Gender</p>
+                                <p className="mt-2 text-sm text-black">{viewApplicant.gender ?? 'Not provided'}</p>
+                            </div>
+                            <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/40">Age</p>
+                                <p className="mt-2 text-sm text-black">{viewApplicant.age ?? 'Not provided'}</p>
+                            </div>
+                            <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-3 md:col-span-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/40">Address</p>
+                                <p className="mt-2 text-sm text-black">{viewApplicant.address ?? 'Not provided'}</p>
+                            </div>
+                            <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-3 md:col-span-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/40">Submitted</p>
+                                <p className="mt-2 text-sm text-black">{formatDate(viewApplicant.created_at)}</p>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex items-center justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setViewApplicant(null)}
+                                className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/60 hover:text-black"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {resumePreview && (
+                <div className="fixed inset-0 z-[195] flex items-center justify-center bg-black/70 px-4 py-6">
+                    <div className="flex h-full max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+                        <div className="flex items-center justify-between border-b border-black/10 px-6 py-4">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.3em] text-black/50">Resume Preview</p>
+                                <h2 className="mt-1 text-lg font-semibold text-black">{resumePreview.applicant.name}</h2>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setResumePreview(null)}
+                                className="text-sm text-black/60 hover:text-black"
+                            >
+                                Close
+                            </button>
+                        </div>
+                        <div className="flex-1 bg-black/[0.03] p-4">
+                            <iframe
+                                src={resumePreview.url}
+                                title={`Resume preview for ${resumePreview.applicant.name}`}
+                                className="h-full min-h-[60vh] w-full rounded-2xl border border-black/10 bg-white"
+                            />
+                        </div>
+                        <div className="flex items-center justify-between border-t border-black/10 px-6 py-4">
+                            <a
+                                href={resumePreview.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-semibold text-black/60 hover:text-black"
+                            >
+                                Open in new tab
+                            </a>
+                            <button
+                                type="button"
+                                onClick={() => setResumePreview(null)}
+                                className="rounded-full bg-[#0a2f22] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0d3b2b]"
+                            >
+                                Close Preview
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {editingApplicant && editForm && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
@@ -494,6 +653,20 @@ export const AdminApplicants: React.FC = () => {
                                     onChange={handleEditChange('age')}
                                     className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
                                 />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-black/60">Status</label>
+                                <select
+                                    value={editForm.status}
+                                    onChange={(event) => setEditForm({ ...editForm, status: event.target.value })}
+                                    className="mt-2 h-11 w-full rounded-xl border border-black/10 px-3 text-sm text-black"
+                                >
+                                    {applicantStatuses.map((status) => (
+                                        <option key={status} value={status}>
+                                            {status}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label className="text-xs font-semibold text-black/60">Position</label>

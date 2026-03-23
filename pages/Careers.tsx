@@ -103,6 +103,7 @@ export const Careers: React.FC = () => {
                 address: form.address,
                 country: form.country,
                 position: form.position,
+                status: 'New',
                 resume_path: fileName
             });
 

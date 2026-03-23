@@ -6,7 +6,6 @@ import {
     Inbox,
     LogOut,
     Settings,
-    Sparkles,
     Users
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
@@ -223,11 +222,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(`${path}/`);
 
     return (
-        <div className="min-h-screen bg-white text-[#0a0b0d]">
-            <div className="mx-auto flex min-h-screen w-[min(1440px,94%)] gap-6 py-8">
-                <aside className="hidden w-[270px] flex-col rounded-[28px] border border-white/10 bg-[#046241] px-5 py-6 shadow-[0_20px_40px_rgba(0,0,0,0.5)] lg:flex">
-                    <div>
-                        <p className="text-base font-semibold text-white">Lifewood</p>
+        <div className="min-h-screen bg-white px-3 text-[#0a0b0d] sm:px-4 lg:px-5">
+            <div className="mx-auto grid min-h-screen w-full max-w-[1480px] gap-6 py-8 lg:grid-cols-[300px_minmax(0,1fr)]">
+                <aside className="hidden w-full flex-col rounded-[28px] border border-white/10 bg-[#046241] px-5 py-6 shadow-[0_20px_40px_rgba(0,0,0,0.5)] lg:flex">
+                    <div className="flex flex-col items-center text-center">
+                        <img
+                            src="https://framerusercontent.com/images/Ca8ppNsvJIfTsWEuHr50gvkDow.png?scale-down-to=512&width=2624&height=474"
+                            alt="Lifewood"
+                            className="h-7 w-auto object-contain"
+                        />
                         <span className="text-[11px] text-white/60">Admin Hub</span>
                     </div>
 
@@ -270,22 +273,19 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                         })}
                     </nav>
 
-                    <div className="mt-8 text-[11px] uppercase tracking-[0.2em] text-white/40">
-                        Administration
-                    </div>
-                    {canEditRole ? (
-                        <Link
-                            to="/admin/management"
-                            className="mt-3 flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-white/70 hover:bg-white/5 hover:text-white"
-                        >
-                            <Settings size={16} />
-                            Admin Management
-                        </Link>
-                    ) : (
-                        <div className="mt-3 flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-white/30 cursor-not-allowed">
-                            <Settings size={16} />
-                            Admin Management
-                        </div>
+                    {canEditRole && (
+                        <>
+                            <div className="mt-8 text-[11px] uppercase tracking-[0.2em] text-white/40">
+                                Administration
+                            </div>
+                            <Link
+                                to="/admin/management"
+                                className="mt-3 flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-white/70 hover:bg-white/5 hover:text-white"
+                            >
+                                <Settings size={16} />
+                                Admin Management
+                            </Link>
+                        </>
                     )}
 
                     <div className="mt-auto rounded-3xl border border-white/10 bg-[#046241] p-4">
@@ -323,7 +323,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     </div>
                 </aside>
 
-                <main className="flex-1">{children}</main>
+                <main className="min-w-0 w-full max-w-[1140px] justify-self-stretch [&>*]:min-h-full xl:max-w-[1180px] 2xl:max-w-[1220px]">
+                    {children}
+                </main>
             </div>
 
             {profileOpen && (

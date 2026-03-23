@@ -257,32 +257,41 @@ export const AdminAnalytics: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="mt-6 h-40">
+                    <div className="mt-6">
                         {visitorsLoading ? (
-                            <div className="flex h-full items-center justify-center text-sm text-black/50">
+                            <div className="flex h-56 items-center justify-center text-sm text-black/50">
                                 Loading realtime chart...
                             </div>
                         ) : (
-                            <div className="flex h-full items-end gap-1">
-                                {visitorBuckets.map((bucket, index) => (
-                                    <div key={`${bucket.label}-${index}`} className="flex-1">
-                                        <div className="flex h-full items-end">
-                                            <div
-                                                className="w-full rounded-full bg-[#0a2f22]/10"
-                                                style={{ height: '100%' }}
-                                            >
-                                                <div
-                                                    className="w-full rounded-full bg-[#0a2f22] transition-all duration-300"
-                                                    style={{ height: `${(bucket.count / maxVisitors) * 100}%` }}
-                                                    title={`${bucket.count} visits`}
-                                                />
-                                            </div>
-                                        </div>
-                                        {index % 5 === 0 && (
-                                            <p className="mt-2 text-[10px] text-black/40 text-center">{bucket.label}</p>
-                                        )}
+                            <div className="rounded-[28px] border border-black/10 bg-[#f7f8fa] p-4">
+                                <div className="relative h-56">
+                                    <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
+                                        {[0, 1, 2, 3].map((line) => (
+                                            <div key={line} className="border-t border-dashed border-black/10" />
+                                        ))}
                                     </div>
-                                ))}
+
+                                    <div className="absolute inset-0 flex items-end gap-2">
+                                        {visitorBuckets.map((bucket, index) => (
+                                            <div key={`${bucket.label}-${index}`} className="flex h-full flex-1 flex-col justify-end">
+                                                <div
+                                                    className="w-full rounded-t-[10px] bg-[#0a2f22] shadow-[0_8px_20px_rgba(10,47,34,0.18)] transition-all duration-300 hover:bg-[#0d3b2b]"
+                                                    style={{ height: `${(bucket.count / maxVisitors) * 100}%` }}
+                                                    title={`${bucket.label}: ${bucket.count} visits`}
+                                                />
+                                                {index % 5 === 0 && (
+                                                    <p className="mt-2 text-center text-[10px] text-black/40">{bucket.label}</p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 flex items-center justify-between text-[11px] text-black/45">
+                                    <span>0</span>
+                                    <span>{Math.max(1, Math.ceil(maxVisitors / 2))}</span>
+                                    <span>{maxVisitors}</span>
+                                </div>
                             </div>
                         )}
                     </div>

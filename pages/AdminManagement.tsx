@@ -18,6 +18,7 @@ export const AdminManagement: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [roleFilter, setRoleFilter] = useState('All');
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [createOpen, setCreateOpen] = useState(false);
     const [createForm, setCreateForm] = useState({
@@ -265,6 +266,8 @@ export const AdminManagement: React.FC = () => {
     };
 
     const filteredAdmins = admins.filter((admin) => {
+        const matchesRole = roleFilter === 'All' || (admin.role ?? 'Admin') === roleFilter;
+        if (!matchesRole) return false;
         if (!searchTerm.trim()) return true;
         const query = searchTerm.toLowerCase();
         return (
@@ -296,13 +299,24 @@ export const AdminManagement: React.FC = () => {
                 </div>
 
                 <div className="mt-6">
-                    <input
-                        type="search"
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        placeholder="Search by name, role, department, or location..."
-                        className="h-11 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm text-black outline-none focus:border-black/30"
-                    />
+                    <div className="flex flex-col gap-3 md:flex-row">
+                        <input
+                            type="search"
+                            value={searchTerm}
+                            onChange={(event) => setSearchTerm(event.target.value)}
+                            placeholder="Search by name, role, department, or location..."
+                            className="h-11 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm text-black outline-none focus:border-black/30"
+                        />
+                        <select
+                            value={roleFilter}
+                            onChange={(event) => setRoleFilter(event.target.value)}
+                            className="h-11 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm text-black outline-none focus:border-black/30 md:w-[220px]"
+                        >
+                            <option value="All">All Admin Types</option>
+                            <option value="Super Admin">Super Admin</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div className="mt-6 rounded-3xl border border-black/10 bg-white shadow-[0_20px_40px_rgba(0,0,0,0.12)]">
