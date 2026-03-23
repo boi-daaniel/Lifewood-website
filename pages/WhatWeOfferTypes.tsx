@@ -586,7 +586,7 @@ export const WhatWeOfferTypeC: React.FC = () => (
             },
             {
                 label: 'Results',
-                description: 'Achieved 25% production in Month 1 with 95% accuracy (Target: 90%) and 50% production in Month 2 with 99% accuracy (Target: 95%). Maintained an overall accuracy of 99% with on‑time delivery. Successfully expanded operations to Malaysia with 100 annotators and Indonesia with 150 annotators.',
+                description: 'Achieved 25% production in Month 1 with 95% accuracy (Target: 90%) and 50% production in Month 2 with 99% accuracy (Target: 95%). Maintained an overall accuracy of 99% with on-time delivery. Successfully expanded operations to Malaysia with 100 annotators and Indonesia with 150 annotators.',
                 image: 'https://framerusercontent.com/images/mqqWNbBnY0EOUvSMgGlDain8M.jpg?width=1004&height=591',
                 imageAlt: 'Project results'
             }

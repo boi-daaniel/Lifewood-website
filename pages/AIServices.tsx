@@ -505,27 +505,6 @@ export const AIServices: React.FC = () => {
                 </motion.div>
             </section>
 
-            {/* Video Section */}
-            <section className="container mx-auto px-6 pt-10 md:pt-14 pb-8 md:pb-12">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ margin: "-100px" }}
-                    transition={{ duration: 0.6 }}
-                    className="relative mx-auto w-full max-w-4xl rounded-3xl overflow-hidden aspect-video bg-gray-900 shadow-2xl"
-                >
-                    <iframe
-                        className="w-full h-full"
-                        src="https://www.youtube.com/embed/g_JvAVL0WY4?rel=0"
-                        title="Lifewood video"
-                        loading="lazy"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        referrerPolicy="strict-origin-when-cross-origin"
-                        allowFullScreen
-                    />
-                </motion.div>
-            </section>
-
             {/* Why Choose Us */}
             <section className="container mx-auto px-6 py-12 md:py-24 text-center">
                 <motion.div

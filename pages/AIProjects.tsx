@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Minus, Database, Brain, Zap, MessageSquare, BookOpen, Globe } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+    ArrowUpRight,
+    BookOpen,
+    Brain,
+    Database,
+    Globe,
+    MessageSquare,
+    Sparkles,
+    Zap
+} from 'lucide-react';
 import { ContactUsButton } from '../components/ContactUsButton';
 
 interface ProjectItem {
@@ -10,277 +19,320 @@ interface ProjectItem {
     description: string;
     details: string[];
     image: string;
+    category: string;
+    accent: string;
 }
 
 export const AIProjects: React.FC = () => {
-    const [expandedId, setExpandedId] = useState<number | null>(null);
+    const projects: ProjectItem[] = useMemo(
+        () => [
+            {
+                id: 1,
+                title: 'Data Extraction',
+                category: 'Document Intelligence',
+                icon: <Database className="h-5 w-5" />,
+                description: 'Structured data extraction from complex files, documents, and operational sources.',
+                details: [
+                    'Multi-format document ingestion',
+                    'OCR-assisted field mapping',
+                    'Validation pipelines for extracted content',
+                    'Human review for high-accuracy delivery'
+                ],
+                image: 'https://images.pexels.com/photos/590020/pexels-photo-590020.jpeg?auto=compress&cs=tinysrgb&w=1200',
+                accent: 'from-[#133020] to-[#046241]'
+            },
+            {
+                id: 2,
+                title: 'Machine Learning Enablement',
+                category: 'Model Readiness',
+                icon: <Brain className="h-5 w-5" />,
+                description: 'Training datasets, annotation systems, and evaluation workflows for production-ready ML.',
+                details: [
+                    'Dataset preparation and QA',
+                    'Labeling operations at scale',
+                    'Benchmarking and error analysis',
+                    'Iterative optimization support'
+                ],
+                image: 'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1200',
+                accent: 'from-[#101820] to-[#2f3945]'
+            },
+            {
+                id: 3,
+                title: 'Autonomous Driving Technology',
+                category: 'Computer Vision',
+                icon: <Zap className="h-5 w-5" />,
+                description: 'Scenario-rich datasets and sensor interpretation support for mobility and driving systems.',
+                details: [
+                    'Edge-case scenario annotation',
+                    'Sensor-aligned frame review',
+                    'Safety-first validation workflows',
+                    'Large-scale visual dataset support'
+                ],
+                image: 'https://images.pexels.com/photos/112460/pexels-photo-112460.jpeg?auto=compress&cs=tinysrgb&w=1200',
+                accent: 'from-[#5a3100] to-[#ffb347]'
+            },
+            {
+                id: 4,
+                title: 'AI-Enabled Customer Service',
+                category: 'Conversation Systems',
+                icon: <MessageSquare className="h-5 w-5" />,
+                description: 'Datasets and quality programs that improve support automation and customer understanding.',
+                details: [
+                    'Intent and resolution mapping',
+                    'Conversation curation and scoring',
+                    'Sentiment-aligned training data',
+                    'Response quality benchmarking'
+                ],
+                image: 'https://images.pexels.com/photos/8867431/pexels-photo-8867431.jpeg?auto=compress&cs=tinysrgb&w=1200',
+                accent: 'from-[#046241] to-[#0c8d61]'
+            },
+            {
+                id: 5,
+                title: 'NLP and Speech Acquisition',
+                category: 'Language Data',
+                icon: <BookOpen className="h-5 w-5" />,
+                description: 'Text and voice datasets built for multilingual, domain-specific, and speech-enabled AI.',
+                details: [
+                    'Multi-language corpora creation',
+                    'Speech and accent diversity collection',
+                    'Transcription and normalization',
+                    'Domain vocabulary support'
+                ],
+                image: 'https://images.pexels.com/photos/3756766/pexels-photo-3756766.jpeg?auto=compress&cs=tinysrgb&w=1200',
+                accent: 'from-[#223148] to-[#5d6f8c]'
+            },
+            {
+                id: 6,
+                title: 'Genealogy Research',
+                category: 'Historical Intelligence',
+                icon: <Globe className="h-5 w-5" />,
+                description: 'Genealogical data verification, relationship mapping, and record-based research support.',
+                details: [
+                    'Historical source verification',
+                    'Relationship and lineage mapping',
+                    'Citation and reference validation',
+                    'Large archive review workflows'
+                ],
+                image: 'https://images.pexels.com/photos/6801648/pexels-photo-6801648.jpeg?auto=compress&cs=tinysrgb&w=1200',
+                accent: 'from-[#5d4727] to-[#c7a266]'
+            }
+        ],
+        []
+    );
 
-    const projects: ProjectItem[] = [
-        {
-            id: 1,
-            title: 'Data Extract on',
-            icon: <Database className="w-6 h-6" />,
-            description: 'Extract structured data from complex documents and sources',
-            details: [
-                'Multi-format document processing',
-                'Intelligent field mapping',
-                'OCR integration',
-                'Quality assurance workflows'
-            ],
-            image: 'https://images.pexels.com/photos/590020/pexels-photo-590020.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1'
-        },
-        {
-            id: 2,
-            title: 'Machine learning Enablement',
-            icon: <Brain className="w-6 h-6" />,
-            description: 'Build and train ML models with enterprise-grade data',
-            details: [
-                'Dataset preparation and labeling',
-                'Model training pipelines',
-                'Performance optimization',
-                'Model evaluation frameworks'
-            ],
-            image: 'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1'
-        },
-        {
-            id: 3,
-            title: 'Autonomous Driving Technology',
-            icon: <Zap className="w-6 h-6" />,
-            description: 'Data solutions for autonomous vehicle development',
-            details: [
-                'Sensor data collection',
-                'Scenario annotation',
-                'Edge case identification',
-                'Safety validation datasets'
-            ],
-            image: 'https://images.pexels.com/photos/112460/pexels-photo-112460.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1'
-        },
-        {
-            id: 4,
-            title: 'AI-Enabled Customer Service',
-            icon: <MessageSquare className="w-6 h-6" />,
-            description: 'Enhance customer interactions with intelligent systems',
-            details: [
-                'Conversation dataset curation',
-                'Intent classification',
-                'Sentiment analysis training',
-                'Response quality benchmarking'
-            ],
-            image: 'https://images.pexels.com/photos/8867431/pexels-photo-8867431.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1'
-        },
-        {
-            id: 5,
-            title: 'Natural Language Processing and Speech Acquisition on',
-            icon: <BookOpen className="w-6 h-6" />,
-            description: 'Advanced NLP and speech data solutions',
-            details: [
-                'Multi-language text corpora',
-                'Speech audio collection',
-                'Dialect and accent diversity',
-                'Domain-specific terminology'
-            ],
-            image: 'https://images.pexels.com/photos/3756766/pexels-photo-3756766.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1'
-        },
-        {
-            id: 6,
-            title: 'Genealogy',
-            icon: <Globe className="w-6 h-6" />,
-            description: 'Genealogical data research and verification',
-            details: [
-                'Family tree data validation',
-                'Historical record matching',
-                'Relationship mapping',
-                'Citation verification'
-            ],
-            image: 'https://images.pexels.com/photos/6801648/pexels-photo-6801648.jpeg?auto=compress&cs=tinysrgb&w=800&h=800&dpr=1'
-        }
-    ];
-
-    const toggleExpand = (id: number) => {
-        setExpandedId(expandedId === id ? null : id);
-    };
-
-    const activeProject = projects.find((project) => project.id === expandedId) ?? projects[0];
+    const [activeId, setActiveId] = useState<number>(projects[0].id);
+    const activeProject = projects.find((project) => project.id === activeId) ?? projects[0];
 
     return (
-        <div className="bg-white dark:bg-brand-green min-h-screen pt-20 md:pt-24 transition-colors duration-300 dark:[&_h1]:text-white dark:[&_h2]:text-white dark:[&_h3]:text-white dark:[&_h4]:text-white dark:[&_p]:text-gray-200 dark:[&_blockquote]:text-gray-100">
-            {/* Hero Section */}
-            <section className="container mx-auto px-6 py-12 md:py-20">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: false, margin: "-100px" }}
-                    transition={{ duration: 0.6 }}
-                >
-                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-8 text-gray-900 dark:text-white tracking-tight overflow-hidden">
-                        <motion.span
-                            initial={{ opacity: 0, x: -50 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: false, margin: "-100px" }}
-                            transition={{ duration: 0.8, delay: 0.2 }}
-                            className="inline-block"
-                        >
-                            AI Projects
-                        </motion.span>
-                    </h1>
-                    
-                    <motion.p 
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        viewport={{ once: false, margin: "-100px" }}
-                        transition={{ duration: 0.8, delay: 0.4 }}
-                        className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mb-12 leading-relaxed"
-                    >
-                        From building AI datasets to enterprise language and error-unit to developing custom AI phenomenal production and open new opportunities in under-resourced economics, you'll see how Lifewood is bringing the future with innovation, integrity, and a focus on people.
-                    </motion.p>
-                    
-                    <ContactUsButton />
-                </motion.div>
-            </section>
-
-            {/* Main Content - Grid Layout */}
-            <section className="container mx-auto px-6 py-12 md:py-16 mb-14 md:mb-20">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ margin: "-100px" }}
-                    transition={{ duration: 0.6 }}
-                >
-                    <div className="mb-12">
-                        <span className="inline-block bg-gray-900 dark:bg-gray-700 text-white px-4 py-2 rounded-full text-sm font-medium mb-6">Projects</span>
-                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-                            What we currently handle
-                        </h2>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-                        {/* Left Side - Image */}
+        <div className="min-h-screen bg-[#f5f2ea] pb-20 pt-20 text-[#101820] md:pt-24">
+            <section className="container mx-auto px-6 py-10 md:py-16">
+                <div className="mx-auto max-w-7xl">
+                    <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
                         <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ margin: "-100px" }}
-                            transition={{ duration: 0.6, delay: 0.1 }}
-                            className="hidden lg:block"
+                            initial={{ opacity: 0, y: 18 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.55 }}
+                            className="relative overflow-hidden rounded-[34px] border border-[#d7d0c2] bg-white p-7 shadow-[0_25px_60px_rgba(16,24,32,0.08)] sm:p-9"
                         >
-                            <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-square">
-                                <AnimatePresence mode="wait">
-                                    <motion.img
-                                        key={activeProject.id}
-                                        initial={{ opacity: 0.35, scale: 1.03 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.98 }}
-                                        transition={{ duration: 0.28, ease: 'easeOut' }}
-                                        src={activeProject.image}
-                                        alt={activeProject.title}
-                                        className="w-full h-full object-cover absolute inset-0"
-                                    />
-                                </AnimatePresence>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
-                                <div className="absolute bottom-4 left-4 right-4">
-                                    <div className="inline-flex bg-black/45 text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm">
-                                        {activeProject.title}
+                            <div className="absolute -right-10 top-0 h-40 w-40 rounded-full bg-[#ffb347]/25 blur-3xl" />
+                            <div className="absolute bottom-0 left-0 h-44 w-44 rounded-full bg-[#046241]/12 blur-3xl" />
+                            <div className="relative z-10">
+                                <span className="inline-flex items-center gap-2 rounded-full border border-[#133020]/10 bg-[#f6f2e7] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.32em] text-[#133020]">
+                                    <Sparkles className="h-3.5 w-3.5" />
+                                    AI Projects
+                                </span>
+                                <h1 className="mt-6 max-w-4xl text-5xl font-semibold leading-[0.92] tracking-[-0.04em] md:text-7xl">
+                                    Where Lifewood turns
+                                    <span className="block text-[#046241]">complex AI work into real execution.</span>
+                                </h1>
+                                <p className="mt-6 max-w-3xl text-base leading-8 text-[#42505b] md:text-lg">
+                                    Our project portfolio spans document intelligence, language data, model enablement,
+                                    customer experience systems, and high-precision research operations. Each initiative is
+                                    built around scale, review discipline, and practical business impact.
+                                </p>
+
+                                <div className="mt-8">
+                                    <ContactUsButton />
+                                </div>
+
+                                <div className="mt-10 grid gap-4 sm:grid-cols-3">
+                                    <div className="rounded-[24px] border border-[#101820]/8 bg-[#f8f6f0] p-5">
+                                        <p className="text-[11px] uppercase tracking-[0.28em] text-[#6b665d]">Focus</p>
+                                        <p className="mt-2 text-lg font-semibold">Human-reviewed AI delivery</p>
+                                    </div>
+                                    <div className="rounded-[24px] border border-[#101820]/8 bg-[#f8f6f0] p-5">
+                                        <p className="text-[11px] uppercase tracking-[0.28em] text-[#6b665d]">Coverage</p>
+                                        <p className="mt-2 text-lg font-semibold">Multi-modal, multi-market datasets</p>
+                                    </div>
+                                    <div className="rounded-[24px] border border-[#101820]/8 bg-[#f8f6f0] p-5">
+                                        <p className="text-[11px] uppercase tracking-[0.28em] text-[#6b665d]">Approach</p>
+                                        <p className="mt-2 text-lg font-semibold">Operationally rigorous execution</p>
                                     </div>
                                 </div>
                             </div>
                         </motion.div>
 
-                        {/* Right Side - Accordion Items */}
                         <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ margin: "-100px" }}
-                            transition={{ duration: 0.6, delay: 0.1 }}
-                            className="space-y-4"
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.08 }}
+                            className="grid gap-6"
                         >
-                            {projects.map((project, index) => (
-                                <motion.div
-                                    key={project.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ margin: "-100px" }}
-                                    transition={{ duration: 0.4, delay: index * 0.05 }}
-                                >
-                                    <button
-                                        onClick={() => toggleExpand(project.id)}
-                                        className="w-full"
-                                    >
-                                        <motion.div
-                                            className={`w-full p-6 rounded-2xl border-2 transition-all duration-300 text-left ${
-                                                expandedId === project.id
-                                                    ? 'bg-brand-gold/10 border-brand-gold dark:bg-brand-gold/20'
-                                                    : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-brand-gold/50'
-                                            }`}
-                                            layout
-                                        >
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="flex items-start gap-4 flex-1">
-                                                    <div className={`p-3 rounded-lg transition-colors ${
-                                                        expandedId === project.id
-                                                            ? 'bg-brand-gold text-black'
-                                                            : 'bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white'
-                                                    }`}>
-                                                        {project.icon}
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <h3 className="font-bold text-lg text-gray-900 dark:text-white text-left">
-                                                            {project.id}. {project.title}
-                                                        </h3>
-                                                        {expandedId !== project.id && (
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                                {project.description}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className={`flex-shrink-0 p-2 rounded-lg transition-colors ${
-                                                    expandedId === project.id
-                                                        ? 'bg-brand-gold text-black'
-                                                        : 'bg-gray-200 dark:bg-white/10'
-                                                }`}>
-                                                    {expandedId === project.id ? (
-                                                        <Minus size={20} />
-                                                    ) : (
-                                                        <Plus size={20} />
-                                                    )}
-                                                </div>
-                                            </div>
+                            <div className={`overflow-hidden rounded-[34px] bg-gradient-to-br ${activeProject.accent} p-5 text-white shadow-[0_28px_60px_rgba(16,24,32,0.14)]`}>
+                                <img
+                                    src={activeProject.image}
+                                    alt={activeProject.title}
+                                    className="h-[310px] w-full rounded-[26px] object-cover sm:h-[360px]"
+                                />
+                                <div className="mt-5 flex items-start justify-between gap-4">
+                                    <div>
+                                        <p className="text-[11px] uppercase tracking-[0.32em] text-white/60">{activeProject.category}</p>
+                                        <h2 className="mt-2 text-2xl font-semibold leading-tight">{activeProject.title}</h2>
+                                    </div>
+                                    <div className="rounded-full border border-white/15 bg-white/10 p-3">
+                                        {activeProject.icon}
+                                    </div>
+                                </div>
+                            </div>
 
-                                            <AnimatePresence>
-                                                {expandedId === project.id && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, height: 0 }}
-                                                        animate={{ opacity: 1, height: 'auto' }}
-                                                        exit={{ opacity: 0, height: 0 }}
-                                                        transition={{ duration: 0.3 }}
-                                                        className="mt-6 pt-6 border-t-2 border-gray-200 dark:border-white/10"
-                                                    >
-                                                        <p className="text-gray-700 dark:text-gray-300 mb-4 font-medium">
-                                                            {project.description}
-                                                        </p>
-                                                        <ul className="space-y-2">
-                                                            {project.details.map((detail, idx) => (
-                                                                <motion.li
-                                                                    key={idx}
-                                                                    initial={{ opacity: 0, x: -10 }}
-                                                                    animate={{ opacity: 1, x: 0 }}
-                                                                    transition={{ delay: idx * 0.05 }}
-                                                                    className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400"
-                                                                >
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-brand-gold flex-shrink-0"></div>
-                                                                    {detail}
-                                                                </motion.li>
-                                                            ))}
-                                                        </ul>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </motion.div>
-                                    </button>
-                                </motion.div>
-                            ))}
+                            <div className="rounded-[30px] border border-[#d7d0c2] bg-[#efe8d7] p-6">
+                                <p className="text-[11px] uppercase tracking-[0.32em] text-[#6b665d]">Featured Project Lens</p>
+                                <p className="mt-4 text-base leading-8 text-[#2d3740]">
+                                    {activeProject.description}
+                                </p>
+                            </div>
                         </motion.div>
                     </div>
-                </motion.div>
+                </div>
+            </section>
+
+            <section className="container mx-auto px-6">
+                <div className="mx-auto max-w-7xl">
+                    <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                        <div>
+                            <p className="text-[11px] uppercase tracking-[0.32em] text-[#6b665d]">Project Catalog</p>
+                            <h2 className="mt-3 text-4xl font-semibold leading-tight text-[#101820] md:text-5xl">
+                                Select a project focus to explore how we deliver.
+                            </h2>
+                        </div>
+                        <p className="max-w-xl text-sm leading-7 text-[#4f5a63]">
+                            Instead of a static project list, this view highlights one active capability at a time while still letting the rest of the portfolio stay visible and easy to scan.
+                        </p>
+                    </div>
+
+                    <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+                        <div className="grid gap-4">
+                            {projects.map((project, index) => {
+                                const isActive = project.id === activeId;
+                                return (
+                                    <motion.button
+                                        key={project.id}
+                                        type="button"
+                                        initial={{ opacity: 0, y: 12 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true, margin: '-80px' }}
+                                        transition={{ duration: 0.35, delay: index * 0.05 }}
+                                        onClick={() => setActiveId(project.id)}
+                                        className={`w-full rounded-[28px] border p-5 text-left transition-all duration-300 ${
+                                            isActive
+                                                ? 'border-[#133020]/30 bg-white shadow-[0_20px_50px_rgba(16,24,32,0.08)]'
+                                                : 'border-[#d7d0c2] bg-[#fbfaf6] hover:border-[#133020]/20 hover:bg-white'
+                                        }`}
+                                    >
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex items-start gap-4">
+                                                <div className={`mt-1 flex h-12 w-12 items-center justify-center rounded-2xl ${
+                                                    isActive ? 'bg-[#133020] text-white' : 'bg-[#ece5d5] text-[#133020]'
+                                                }`}>
+                                                    {project.icon}
+                                                </div>
+                                                <div>
+                                                    <p className="text-[11px] uppercase tracking-[0.28em] text-[#6b665d]">{project.category}</p>
+                                                    <h3 className="mt-2 text-xl font-semibold text-[#101820]">{project.title}</h3>
+                                                    <p className="mt-2 text-sm leading-7 text-[#52606a]">
+                                                        {project.description}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className={`rounded-full p-2 transition ${
+                                                isActive ? 'bg-[#ffb347] text-[#101820]' : 'bg-[#ece5d5] text-[#6b665d]'
+                                            }`}>
+                                                <ArrowUpRight className="h-4 w-4" />
+                                            </div>
+                                        </div>
+                                    </motion.button>
+                                );
+                            })}
+                        </div>
+
+                        <motion.div
+                            key={activeProject.id}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35 }}
+                            className="overflow-hidden rounded-[34px] border border-[#d7d0c2] bg-white shadow-[0_24px_60px_rgba(16,24,32,0.08)]"
+                        >
+                            <div className={`bg-gradient-to-br ${activeProject.accent} p-6 text-white sm:p-7`}>
+                                <div className="flex flex-wrap items-center justify-between gap-4">
+                                    <div>
+                                        <p className="text-[11px] uppercase tracking-[0.32em] text-white/60">{activeProject.category}</p>
+                                        <h3 className="mt-2 text-3xl font-semibold leading-tight">{activeProject.title}</h3>
+                                    </div>
+                                    <div className="rounded-full border border-white/15 bg-white/10 p-3">
+                                        {activeProject.icon}
+                                    </div>
+                                </div>
+                                <p className="mt-5 max-w-2xl text-sm leading-8 text-white/80">
+                                    {activeProject.description}
+                                </p>
+                            </div>
+
+                            <div className="grid gap-0 border-t border-[#ece7db] md:grid-cols-2">
+                                {activeProject.details.map((detail, index) => (
+                                    <div
+                                        key={detail}
+                                        className={`p-6 ${index % 2 === 0 ? 'md:border-r md:border-[#ece7db]' : ''} ${
+                                            index < activeProject.details.length - 2 ? 'border-b border-[#ece7db]' : ''
+                                        }`}
+                                    >
+                                        <p className="text-[11px] uppercase tracking-[0.28em] text-[#6b665d]">
+                                            Capability {index + 1}
+                                        </p>
+                                        <p className="mt-3 text-base leading-8 text-[#1e2930]">{detail}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="container mx-auto mt-20 px-6">
+                <div className="mx-auto max-w-7xl">
+                    <div className="grid gap-6 md:grid-cols-3">
+                        <div className="rounded-[30px] bg-[#101820] p-6 text-white shadow-[0_20px_50px_rgba(16,24,32,0.14)]">
+                            <p className="text-[11px] uppercase tracking-[0.3em] text-white/45">Project Strength</p>
+                            <h3 className="mt-4 text-3xl font-semibold">Scalable delivery</h3>
+                            <p className="mt-3 text-sm leading-7 text-white/72">
+                                Built to support high-volume workflows without losing quality control.
+                            </p>
+                        </div>
+                        <div className="rounded-[30px] bg-[#ffb347] p-6 text-[#101820] shadow-[0_20px_50px_rgba(255,179,71,0.2)]">
+                            <p className="text-[11px] uppercase tracking-[0.3em] text-[#7d4a00]">Project Strength</p>
+                            <h3 className="mt-4 text-3xl font-semibold">Human review layers</h3>
+                            <p className="mt-3 text-sm leading-7 text-[#3d2a12]">
+                                Every workflow can be shaped with reviewer checkpoints, QA, and accuracy control.
+                            </p>
+                        </div>
+                        <div className="rounded-[30px] bg-[#046241] p-6 text-white shadow-[0_20px_50px_rgba(4,98,65,0.18)]">
+                            <p className="text-[11px] uppercase tracking-[0.3em] text-white/45">Project Strength</p>
+                            <h3 className="mt-4 text-3xl font-semibold">Cross-market adaptability</h3>
+                            <p className="mt-3 text-sm leading-7 text-white/72">
+                                Project structures can flex across languages, industries, and regional requirements.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </section>
         </div>
     );
