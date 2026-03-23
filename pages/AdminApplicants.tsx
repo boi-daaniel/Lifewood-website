@@ -38,6 +38,7 @@ export const AdminApplicants: React.FC = () => {
     const [editForm, setEditForm] = useState<EditForm | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 5;
 
@@ -102,10 +103,20 @@ export const AdminApplicants: React.FC = () => {
     }, [searchTerm]);
 
     useEffect(() => {
+        setMenuOpenId(null);
+    }, [searchTerm, currentPage]);
+
+    useEffect(() => {
         if (currentPage > totalPages) {
             setCurrentPage(totalPages);
         }
     }, [currentPage, totalPages]);
+
+    useEffect(() => {
+        const handleWindowClick = () => setMenuOpenId(null);
+        window.addEventListener('click', handleWindowClick);
+        return () => window.removeEventListener('click', handleWindowClick);
+    }, []);
 
     const editInitial = useMemo<EditForm | null>(() => {
         if (!editingApplicant) return null;
@@ -301,46 +312,85 @@ export const AdminApplicants: React.FC = () => {
                                                 Submitted {formatDate(item.created_at)}
                                             </p>
                                         </div>
-                                        <div className="flex flex-col items-start gap-2">
+                                        <div className="relative">
                                             <button
                                                 type="button"
-                                                onClick={() => handleDownload(item)}
-                                                disabled={downloadingId === item.id}
-                                                className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/70 transition hover:border-black/30 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    setMenuOpenId((prev) => (prev === item.id ? null : item.id))
+                                                }}
+                                                className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-lg text-black/60 transition hover:border-black/30 hover:text-black"
+                                                aria-haspopup="menu"
+                                                aria-expanded={menuOpenId === item.id}
+                                                aria-label="Applicant actions"
                                             >
-                                                {downloadingId === item.id ? 'Preparing...' : 'Download Resume'}
+                                                ...
                                             </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleViewResume(item)}
-                                                disabled={viewingId === item.id}
-                                                className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/70 transition hover:border-black/30 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
-                                            >
-                                                {viewingId === item.id ? 'Opening...' : 'View Resume'}
-                                            </button>
-                                            <a
-                                                href={`mailto:${item.email}?subject=${encodeURIComponent(
-                                                    `Lifewood Application: ${item.position}`
-                                                )}`}
-                                                className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/70 transition hover:border-black/30 hover:text-black"
-                                            >
-                                                Reply
-                                            </a>
-                                            <button
-                                                type="button"
-                                                onClick={() => setEditingApplicant(item)}
-                                                className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/70 transition hover:border-black/30 hover:text-black"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDelete(item)}
-                                                disabled={deletingId === item.id}
-                                                className="rounded-full border border-red-200 px-4 py-2 text-xs font-semibold text-red-600 transition hover:border-red-400 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                            >
-                                                {deletingId === item.id ? 'Deleting...' : 'Delete'}
-                                            </button>
+                                            {menuOpenId === item.id && (
+                                                <div
+                                                    onClick={(event) => event.stopPropagation()}
+                                                    className="absolute right-0 top-11 z-10 w-44 rounded-2xl border border-black/10 bg-white p-2 shadow-[0_20px_40px_rgba(0,0,0,0.16)]"
+                                                    role="menu"
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleDownload(item);
+                                                            setMenuOpenId(null);
+                                                        }}
+                                                        disabled={downloadingId === item.id}
+                                                        className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-black/70 transition hover:bg-black/5 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+                                                        role="menuitem"
+                                                    >
+                                                        {downloadingId === item.id ? 'Preparing...' : 'Download Resume'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleViewResume(item);
+                                                            setMenuOpenId(null);
+                                                        }}
+                                                        disabled={viewingId === item.id}
+                                                        className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-black/70 transition hover:bg-black/5 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+                                                        role="menuitem"
+                                                    >
+                                                        {viewingId === item.id ? 'Opening...' : 'View Resume'}
+                                                    </button>
+                                                    <a
+                                                        href={`mailto:${item.email}?subject=${encodeURIComponent(
+                                                            `Lifewood Application: ${item.position}`
+                                                        )}`}
+                                                        onClick={() => setMenuOpenId(null)}
+                                                        className="block w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-black/70 transition hover:bg-black/5 hover:text-black"
+                                                        role="menuitem"
+                                                    >
+                                                        Reply
+                                                    </a>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setEditingApplicant(item);
+                                                            setMenuOpenId(null);
+                                                        }}
+                                                        className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-black/70 transition hover:bg-black/5 hover:text-black"
+                                                        role="menuitem"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleDelete(item);
+                                                            setMenuOpenId(null);
+                                                        }}
+                                                        disabled={deletingId === item.id}
+                                                        className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                        role="menuitem"
+                                                    >
+                                                        {deletingId === item.id ? 'Deleting...' : 'Delete'}
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     {(item.gender || item.age || item.address) && (
