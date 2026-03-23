@@ -4,6 +4,7 @@ import {
     ChartLine,
     Gauge,
     Inbox,
+    type LucideIcon,
     LogOut,
     Settings,
     Users
@@ -21,7 +22,14 @@ type AdminProfile = {
     avatarUrl?: string | null;
 };
 
-const navItems = [
+type NavItem = {
+    label: string;
+    to: string;
+    icon: LucideIcon;
+    disabled?: boolean;
+};
+
+const navItems: NavItem[] = [
     { label: 'Dashboard', to: '/admin/dashboard', icon: Gauge },
     { label: 'Inbox', to: '/admin/inbox', icon: Inbox },
     { label: 'Applicants', to: '/admin/applicants', icon: Users },
