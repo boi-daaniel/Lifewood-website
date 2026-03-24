@@ -4,10 +4,14 @@ import {
     ChartLine,
     Gauge,
     Inbox,
-    type LucideIcon,
     LogOut,
+    Menu,
+    PanelLeftClose,
+    PanelLeftOpen,
     Settings,
-    Users
+    type LucideIcon,
+    Users,
+    X
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { COUNTRY_OPTIONS, getCountryLabel, normalizeCountryValue } from '../lib/countries';
@@ -43,6 +47,8 @@ type AdminLayoutProps = {
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     const location = useLocation();
     const navigate = useNavigate();
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [profile, setProfile] = useState<AdminProfile>({
         name: 'Admin',
         role: 'Admin access',
@@ -118,6 +124,23 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             authListener?.data?.subscription?.unsubscribe();
         };
     }, []);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const storedValue = window.localStorage.getItem('admin-sidebar-collapsed');
+        if (storedValue === 'true') {
+            setSidebarCollapsed(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem('admin-sidebar-collapsed', String(sidebarCollapsed));
+    }, [sidebarCollapsed]);
+
+    useEffect(() => {
+        setMobileSidebarOpen(false);
+    }, [location.pathname]);
 
     const handleSignOut = async () => {
         if (!supabase) return;
@@ -230,111 +253,261 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
     const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(`${path}/`);
 
+    const navLinkClass = (collapsed: boolean, active: boolean) =>
+        `flex items-center rounded-2xl text-sm transition ${
+            collapsed ? 'justify-center px-3 py-3.5' : 'gap-3 px-4 py-3'
+        } ${
+            active
+                ? 'bg-[#0f1720] text-[#c9ff3c] shadow-[0_0_0_1px_rgba(201,255,60,0.2)]'
+                : 'text-white/75 hover:bg-white/5 hover:text-white'
+        }`;
+
+    const renderNavLinks = (collapsed: boolean) => (
+        <nav className="mt-4 flex flex-col gap-2">
+            {navItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.to);
+
+                if (item.disabled) {
+                    return (
+                        <div
+                            key={item.label}
+                            className={`flex cursor-not-allowed items-center rounded-2xl text-sm text-white/30 ${
+                                collapsed ? 'justify-center px-3 py-3.5' : 'gap-3 px-4 py-3'
+                            }`}
+                            title={collapsed ? item.label : undefined}
+                        >
+                            <Icon size={18} />
+                            {!collapsed && item.label}
+                        </div>
+                    );
+                }
+
+                return (
+                    <Link
+                        key={item.label}
+                        to={item.to}
+                        title={collapsed ? item.label : undefined}
+                        className={navLinkClass(collapsed, active)}
+                    >
+                        <Icon size={18} />
+                        {!collapsed && item.label}
+                    </Link>
+                );
+            })}
+        </nav>
+    );
+
+    const renderManagementLink = (collapsed: boolean) => {
+        if (!canEditRole) return null;
+
+        return (
+            <>
+                <div className={`mt-8 text-[11px] uppercase tracking-[0.2em] text-white/40 ${collapsed ? 'text-center' : ''}`}>
+                    {collapsed ? 'Admin' : 'Administration'}
+                </div>
+                <Link
+                    to="/admin/management"
+                    title={collapsed ? 'Admin Management' : undefined}
+                    className={navLinkClass(collapsed, isActive('/admin/management'))}
+                >
+                    <Settings size={18} />
+                    {!collapsed && 'Admin Management'}
+                </Link>
+            </>
+        );
+    };
+
+    const renderProfileCard = (collapsed: boolean) => (
+        <div className={`mt-auto rounded-[26px] border border-white/10 bg-white/5 ${collapsed ? 'p-3' : 'p-4'}`}>
+            <div className={`flex ${collapsed ? 'flex-col items-center gap-3' : 'items-center gap-3'}`}>
+                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#b7f84f] text-sm font-semibold text-black">
+                    {profile.avatarUrl ? (
+                        <img
+                            src={profile.avatarUrl}
+                            alt={profile.name}
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        initials
+                    )}
+                </div>
+                {collapsed ? (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => setProfileOpen(true)}
+                            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white transition hover:bg-white/5"
+                            aria-label="Open profile"
+                        >
+                            <Settings size={16} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSignOut}
+                            disabled={isSigningOut}
+                            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white transition hover:bg-white/5 disabled:opacity-60"
+                            aria-label="Sign out"
+                        >
+                            <LogOut size={16} />
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => setProfileOpen(true)}
+                            className="flex-1 text-left"
+                        >
+                            <p className="text-sm font-semibold text-white">{profile.name}</p>
+                            <p className="text-xs text-white/70">{profile.role}</p>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSignOut}
+                            disabled={isSigningOut}
+                            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white transition hover:bg-white/5 disabled:opacity-60"
+                            aria-label="Sign out"
+                        >
+                            <LogOut size={16} />
+                        </button>
+                    </>
+                )}
+            </div>
+            {!collapsed && <p className="mt-3 text-[11px] text-white/70">{profile.email}</p>}
+        </div>
+    );
+
     return (
-        <div className="min-h-screen bg-white px-3 text-[#0a0b0d] sm:px-4 lg:px-5">
-            <div className="mx-auto grid min-h-screen w-full max-w-[1480px] gap-6 py-8 lg:grid-cols-[300px_minmax(0,1fr)]">
-                <aside className="hidden w-full flex-col rounded-[28px] border border-white/10 bg-[#046241] px-5 py-6 shadow-[0_20px_40px_rgba(0,0,0,0.5)] lg:flex">
-                    <div className="flex flex-col items-center text-center">
+        <div className="min-h-screen bg-[#f6f8f6] text-[#0a0b0d]">
+            <header className="sticky top-0 z-[120] border-b border-black/10 bg-white/90 backdrop-blur lg:hidden">
+                <div className="flex items-center justify-between px-4 py-3">
+                    <button
+                        type="button"
+                        onClick={() => setMobileSidebarOpen(true)}
+                        className="flex h-10 w-10 items-center justify-center rounded-2xl border border-black/10 text-black"
+                        aria-label="Open navigation"
+                    >
+                        <Menu size={18} />
+                    </button>
+                    <div className="flex items-center gap-3">
                         <img
                             src="https://framerusercontent.com/images/Ca8ppNsvJIfTsWEuHr50gvkDow.png?scale-down-to=512&width=2624&height=474"
                             alt="Lifewood"
                             className="h-7 w-auto object-contain"
                         />
-                        <span className="text-[11px] text-white/60">Admin Hub</span>
+                        <span className="text-xs font-semibold uppercase tracking-[0.28em] text-black/45">Admin</span>
                     </div>
+                    <button
+                        type="button"
+                        onClick={() => setProfileOpen(true)}
+                        className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-black/10 bg-white text-sm font-semibold text-black"
+                        aria-label="Open profile"
+                    >
+                        {profile.avatarUrl ? (
+                            <img
+                                src={profile.avatarUrl}
+                                alt={profile.name}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            initials
+                        )}
+                    </button>
+                </div>
+            </header>
 
-                    <div className="mt-8 text-[11px] uppercase tracking-[0.2em] text-white/40">
-                        Main Menu
-                    </div>
-                    <nav className="mt-4 flex flex-col gap-2">
-                        {navItems.map((item) => {
-                            const Icon = item.icon;
-                            const active = isActive(item.to);
-                            const baseClass =
-                                'flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition';
-
-                            if (item.disabled) {
-                                return (
-                                    <div
-                                        key={item.label}
-                                        className={`${baseClass} text-white/30 cursor-not-allowed`}
-                                    >
-                                        <Icon size={16} />
-                                        {item.label}
-                                    </div>
-                                );
-                            }
-
-                            return (
-                                <Link
-                                    key={item.label}
-                                    to={item.to}
-                                    className={`${baseClass} ${
-                                        active
-                                            ? 'bg-[#1b1e25] text-[#c9ff3c] shadow-[0_0_0_1px_rgba(201,255,60,0.25)]'
-                                            : 'text-white/70 hover:bg-white/5 hover:text-white'
-                                    }`}
+            <aside
+                className={`fixed inset-y-0 left-0 z-[140] hidden border-r border-white/10 bg-[#046241] text-white shadow-[24px_0_60px_rgba(0,0,0,0.18)] transition-all duration-300 lg:flex ${
+                    sidebarCollapsed ? 'w-[92px]' : 'w-[304px]'
+                }`}
+            >
+                <div className={`flex h-full w-full flex-col ${sidebarCollapsed ? 'px-3 py-5' : 'px-5 py-6'}`}>
+                    <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between gap-3'}`}>
+                        {sidebarCollapsed ? (
+                            <div className="group relative flex h-10 w-10 items-center justify-center">
+                                <img
+                                    src="https://framerusercontent.com/images/Ca8ppNsvJIfTsWEuHr50gvkDow.png?scale-down-to=512&width=2624&height=474"
+                                    alt="Lifewood"
+                                    className="h-5 w-auto object-contain transition-opacity duration-200 group-hover:opacity-0 group-focus-within:opacity-0"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setSidebarCollapsed(false)}
+                                    className="absolute inset-0 flex items-center justify-center rounded-2xl border border-white/10 bg-[#046241]/92 text-white opacity-0 transition-all duration-200 hover:bg-[#0b7c57] group-hover:opacity-100 group-focus-within:opacity-100"
+                                    aria-label="Expand sidebar"
                                 >
-                                    <Icon size={16} />
-                                    {item.label}
-                                </Link>
-                            );
-                        })}
-                    </nav>
-
-                    {canEditRole && (
-                        <>
-                            <div className="mt-8 text-[11px] uppercase tracking-[0.2em] text-white/40">
-                                Administration
+                                    <PanelLeftOpen size={18} />
+                                </button>
                             </div>
-                            <Link
-                                to="/admin/management"
-                                className="mt-3 flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-white/70 hover:bg-white/5 hover:text-white"
-                            >
-                                <Settings size={16} />
-                                Admin Management
-                            </Link>
-                        </>
-                    )}
-
-                    <div className="mt-auto rounded-3xl border border-white/10 bg-[#046241] p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#b7f84f] text-black text-sm font-semibold">
-                                {profile.avatarUrl ? (
-                                    <img
-                                        src={profile.avatarUrl}
-                                        alt={profile.name}
-                                        className="h-full w-full object-cover"
-                                    />
-                                ) : (
-                                    initials
-                                )}
-                            </div>
+                        ) : (
+                            <img
+                                src="https://framerusercontent.com/images/Ca8ppNsvJIfTsWEuHr50gvkDow.png?scale-down-to=512&width=2624&height=474"
+                                alt="Lifewood"
+                                className="h-6 w-auto object-contain"
+                            />
+                        )}
+                        {!sidebarCollapsed && (
                             <button
                                 type="button"
-                                onClick={() => setProfileOpen(true)}
-                                className="flex-1 text-left"
+                                onClick={() => setSidebarCollapsed(true)}
+                                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-white/80 transition hover:bg-white/5 hover:text-white"
+                                aria-label="Collapse sidebar"
                             >
-                                <p className="text-sm font-semibold text-white">{profile.name}</p>
-                                <p className="text-xs text-white">{profile.role}</p>
+                                <PanelLeftClose size={18} />
                             </button>
+                        )}
+                    </div>
+
+                    <div className={`mt-8 text-[11px] uppercase tracking-[0.2em] text-white/40 ${sidebarCollapsed ? 'text-center' : ''}`}>
+                        {sidebarCollapsed ? 'Menu' : 'Main Menu'}
+                    </div>
+                    {renderNavLinks(sidebarCollapsed)}
+                    {renderManagementLink(sidebarCollapsed)}
+                    {renderProfileCard(sidebarCollapsed)}
+                </div>
+            </aside>
+
+            {mobileSidebarOpen && (
+                <div className="fixed inset-0 z-[170] bg-black/45 lg:hidden" onClick={() => setMobileSidebarOpen(false)}>
+                    <aside
+                        className="h-full w-[88vw] max-w-[320px] border-r border-white/10 bg-[#046241] px-5 py-6 text-white shadow-[24px_0_60px_rgba(0,0,0,0.3)]"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between gap-3">
+                            <img
+                                src="https://framerusercontent.com/images/Ca8ppNsvJIfTsWEuHr50gvkDow.png?scale-down-to=512&width=2624&height=474"
+                                alt="Lifewood"
+                                className="h-6 w-auto object-contain"
+                            />
                             <button
                                 type="button"
-                                onClick={handleSignOut}
-                                disabled={isSigningOut}
-                                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white transition hover:text-white/80 disabled:opacity-60"
-                                aria-label="Sign out"
+                                onClick={() => setMobileSidebarOpen(false)}
+                                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-white/80 transition hover:bg-white/5 hover:text-white"
+                                aria-label="Close navigation"
                             >
-                                <LogOut size={16} />
+                                <X size={18} />
                             </button>
                         </div>
-                        <p className="mt-3 text-[11px] text-white">{profile.email}</p>
-                    </div>
-                </aside>
 
-                <main className="min-w-0 w-full max-w-[1140px] justify-self-stretch [&>*]:min-h-full xl:max-w-[1180px] 2xl:max-w-[1220px]">
-                    {children}
-                </main>
+                        <div className="mt-8 text-[11px] uppercase tracking-[0.2em] text-white/40">Main Menu</div>
+                        {renderNavLinks(false)}
+                        {renderManagementLink(false)}
+                        {renderProfileCard(false)}
+                    </aside>
+                </div>
+            )}
+
+            <div
+                className={
+                    sidebarCollapsed
+                        ? 'transition-all duration-300 lg:pl-[92px]'
+                        : 'transition-all duration-300 lg:pl-[304px]'
+                }
+            >
+                <div className="mx-auto min-h-screen w-full max-w-[1600px] px-3 py-4 sm:px-4 sm:py-5 lg:px-6 lg:py-8">
+                    <main className="min-w-0 w-full [&>*]:min-h-full">{children}</main>
+                </div>
             </div>
 
             {profileOpen && (
@@ -353,38 +526,38 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                             </div>
                         </div>
                         <div className="px-6 py-5">
-                        <div className="flex flex-wrap gap-6">
-                            <div className="flex flex-col items-center gap-3">
-                                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-[#c9ff3c]/60 bg-[#11141a] text-2xl font-semibold text-[#c9ff3c]">
-                                    {avatarPreview ? (
-                                        <img src={avatarPreview} alt="Avatar preview" className="h-full w-full object-cover" />
-                                    ) : (
-                                        initials
+                            <div className="flex flex-wrap gap-6">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-[#c9ff3c]/60 bg-[#11141a] text-2xl font-semibold text-[#c9ff3c]">
+                                        {avatarPreview ? (
+                                            <img src={avatarPreview} alt="Avatar preview" className="h-full w-full object-cover" />
+                                        ) : (
+                                            initials
+                                        )}
+                                    </div>
+                                    <label className="cursor-pointer text-xs font-semibold text-[#c9ff3c] hover:text-[#d8ff70]">
+                                        Tap to change
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handleAvatarChange}
+                                        />
+                                    </label>
+                                    {(avatarPreview || profile.avatarUrl) && (
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveAvatar}
+                                            className="text-[11px] font-semibold text-white/60 hover:text-white"
+                                        >
+                                            Remove avatar
+                                        </button>
                                     )}
                                 </div>
-                                <label className="text-xs font-semibold text-[#c9ff3c] hover:text-[#d8ff70] cursor-pointer">
-                                    Tap to change
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={handleAvatarChange}
-                                    />
-                                </label>
-                                {(avatarPreview || profile.avatarUrl) && (
-                                    <button
-                                        type="button"
-                                        onClick={handleRemoveAvatar}
-                                        className="text-[11px] font-semibold text-white/60 hover:text-white"
-                                    >
-                                        Remove avatar
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex-1 space-y-4">
-                                <div>
-                                    <label className="text-xs font-semibold text-white/50">Display name</label>
-                                    <input
+                                <div className="flex-1 space-y-4">
+                                    <div>
+                                        <label className="text-xs font-semibold text-white/50">Display name</label>
+                                        <input
                                             value={profileDraft.name}
                                             onChange={(event) =>
                                                 setProfileDraft({ ...profileDraft, name: event.target.value })
@@ -392,74 +565,72 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                                             className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white"
                                         />
                                     </div>
-                                <div>
-                                    <label className="text-xs font-semibold text-white/50">Role</label>
-                                    <select
-                                        value={profileDraft.role}
-                                        onChange={(event) =>
-                                            setProfileDraft({ ...profileDraft, role: event.target.value })
-                                        }
-                                        disabled={!canEditRole}
-                                        className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-white px-3 text-sm text-black disabled:cursor-not-allowed disabled:opacity-70"
-                                    >
-                                        <option value="Admin">Admin</option>
-                                        <option value="Super Admin">Super Admin</option>
-                                    </select>
-                                    {!canEditRole && (
-                                        <p className="mt-1 text-[11px] text-white/40">
-                                            Only Super Admins can change roles.
-                                        </p>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="text-xs font-semibold text-white/50">Phone</label>
-                                    <input
-                                        value={profileDraft.phone ?? ''}
-                                        onChange={(event) =>
-                                            setProfileDraft({ ...profileDraft, phone: event.target.value })
-                                        }
-                                        className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-semibold text-white/50">Department</label>
-                                    <input
-                                        value={profileDraft.department ?? ''}
-                                        onChange={(event) =>
-                                            setProfileDraft({ ...profileDraft, department: event.target.value })
-                                        }
-                                        className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-semibold text-white/50">Location</label>
-                                    <select
-                                        value={profileDraft.location ?? ''}
-                                        onChange={(event) =>
-                                            setProfileDraft({ ...profileDraft, location: event.target.value })
-                                        }
-                                        className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-white px-3 text-sm text-black"
-                                    >
-                                        {!profileDraft.location && (
-                                            <option value="">Select a region</option>
+                                    <div>
+                                        <label className="text-xs font-semibold text-white/50">Role</label>
+                                        <select
+                                            value={profileDraft.role}
+                                            onChange={(event) =>
+                                                setProfileDraft({ ...profileDraft, role: event.target.value })
+                                            }
+                                            disabled={!canEditRole}
+                                            className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-white px-3 text-sm text-black disabled:cursor-not-allowed disabled:opacity-70"
+                                        >
+                                            <option value="Admin">Admin</option>
+                                            <option value="Super Admin">Super Admin</option>
+                                        </select>
+                                        {!canEditRole && (
+                                            <p className="mt-1 text-[11px] text-white/40">
+                                                Only Super Admins can change roles.
+                                            </p>
                                         )}
-                                        {profileDraft.location &&
-                                            !COUNTRY_OPTIONS.some((item) => item.code === profileDraft.location) && (
-                                                <option value={profileDraft.location}>
-                                                    {getCountryLabel(profileDraft.location)}
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold text-white/50">Phone</label>
+                                        <input
+                                            value={profileDraft.phone ?? ''}
+                                            onChange={(event) =>
+                                                setProfileDraft({ ...profileDraft, phone: event.target.value })
+                                            }
+                                            className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold text-white/50">Department</label>
+                                        <input
+                                            value={profileDraft.department ?? ''}
+                                            onChange={(event) =>
+                                                setProfileDraft({ ...profileDraft, department: event.target.value })
+                                            }
+                                            className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold text-white/50">Location</label>
+                                        <select
+                                            value={profileDraft.location ?? ''}
+                                            onChange={(event) =>
+                                                setProfileDraft({ ...profileDraft, location: event.target.value })
+                                            }
+                                            className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-white px-3 text-sm text-black"
+                                        >
+                                            {!profileDraft.location && <option value="">Select a region</option>}
+                                            {profileDraft.location &&
+                                                !COUNTRY_OPTIONS.some((item) => item.code === profileDraft.location) && (
+                                                    <option value={profileDraft.location}>
+                                                        {getCountryLabel(profileDraft.location)}
+                                                    </option>
+                                                )}
+                                            {COUNTRY_OPTIONS.map((country) => (
+                                                <option key={country.code} value={country.code}>
+                                                    {country.label}
                                                 </option>
-                                            )}
-                                        {COUNTRY_OPTIONS.map((country) => (
-                                            <option key={country.code} value={country.code}>
-                                                {country.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-xs font-semibold text-white/50">Email</label>
-                                    <input
-                                        value={profileDraft.email}
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold text-white/50">Email</label>
+                                        <input
+                                            value={profileDraft.email}
                                             readOnly
                                             className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/70"
                                         />

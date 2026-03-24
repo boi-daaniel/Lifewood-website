@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import emailjs from '@emailjs/browser';
 import { AdminLayout } from '../components/AdminLayout';
 import { supabase } from '../lib/supabaseClient';
@@ -16,18 +16,6 @@ type Applicant = {
     status: string | null;
     resume_path: string;
     created_at: string;
-};
-
-type EditForm = {
-    name: string;
-    email: string;
-    contact_number: string;
-    gender: string;
-    age: string;
-    address: string;
-    country: string;
-    position: string;
-    status: string;
 };
 
 const applicantStatuses = ['New', 'Reviewing', 'Interview', 'Accepted', 'Rejected'] as const;
@@ -50,9 +38,6 @@ export const AdminApplicants: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState('All');
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [viewingId, setViewingId] = useState<string | null>(null);
-    const [editingApplicant, setEditingApplicant] = useState<Applicant | null>(null);
-    const [editForm, setEditForm] = useState<EditForm | null>(null);
-    const [isSaving, setIsSaving] = useState(false);
     const [statusUpdateAction, setStatusUpdateAction] = useState<{
         id: string;
         status: 'Accepted' | 'Rejected';
@@ -62,7 +47,7 @@ export const AdminApplicants: React.FC = () => {
     const [viewApplicant, setViewApplicant] = useState<Applicant | null>(null);
     const [resumePreview, setResumePreview] = useState<{ applicant: Applicant; url: string } | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const pageSize = 5;
+    const pageSize = 10;
 
     useEffect(() => {
         let mounted = true;
@@ -144,25 +129,6 @@ export const AdminApplicants: React.FC = () => {
         return () => window.removeEventListener('click', handleWindowClick);
     }, []);
 
-    const editInitial = useMemo<EditForm | null>(() => {
-        if (!editingApplicant) return null;
-        return {
-            name: editingApplicant.name,
-            email: editingApplicant.email,
-            contact_number: editingApplicant.contact_number ?? '',
-            gender: editingApplicant.gender ?? '',
-            age: editingApplicant.age !== null ? String(editingApplicant.age) : '',
-            address: editingApplicant.address ?? '',
-            country: editingApplicant.country ?? '',
-            position: editingApplicant.position,
-            status: editingApplicant.status ?? 'New'
-        };
-    }, [editingApplicant]);
-
-    useEffect(() => {
-        if (editInitial) setEditForm(editInitial);
-    }, [editInitial]);
-
     const handleDownload = async (application: Applicant) => {
         if (!supabase) return;
         setDownloadingId(application.id);
@@ -197,18 +163,11 @@ export const AdminApplicants: React.FC = () => {
         setViewingId(null);
     };
 
-    const handleEditChange = (field: keyof EditForm) => (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!editForm) return;
-        setEditForm({ ...editForm, [field]: event.target.value });
-    };
-
     const syncApplicantStatus = (applicationId: string, nextStatus: string) => {
         setApplications((prev) =>
             prev.map((item) => (item.id === applicationId ? { ...item, status: nextStatus } : item))
         );
         setViewApplicant((prev) => (prev?.id === applicationId ? { ...prev, status: nextStatus } : prev));
-        setEditingApplicant((prev) => (prev?.id === applicationId ? { ...prev, status: nextStatus } : prev));
-        setEditForm((prev) => (prev && editingApplicant?.id === applicationId ? { ...prev, status: nextStatus } : prev));
     };
 
     const sendDecisionEmail = async (
@@ -259,74 +218,6 @@ export const AdminApplicants: React.FC = () => {
                 }`
             );
         }
-    };
-
-    const handleSaveEdit = async () => {
-        if (!supabase || !editingApplicant || !editForm) return;
-        setIsSaving(true);
-        setError(null);
-
-        const previousStatus = editingApplicant.status ?? 'New';
-        const payload = {
-            name: editForm.name.trim(),
-            email: editForm.email.trim(),
-            contact_number: editForm.contact_number.trim() || null,
-            gender: editForm.gender.trim() || null,
-            age: editForm.age ? Number(editForm.age) : null,
-            address: editForm.address.trim() || null,
-            country: editForm.country.trim() || null,
-            position: editForm.position.trim(),
-            status: editForm.status.trim() || 'New'
-        };
-
-        const { error: updateError } = await supabase
-            .from('career_applications')
-            .update(payload)
-            .eq('id', editingApplicant.id);
-
-        if (updateError) {
-            setError(updateError.message);
-            setIsSaving(false);
-            return;
-        }
-
-        setApplications((prev) =>
-            prev.map((item) =>
-                item.id === editingApplicant.id
-                    ? {
-                          ...item,
-                          ...payload,
-                          contact_number: payload.contact_number,
-                          gender: payload.gender,
-                          age: payload.age,
-                          address: payload.address,
-                          country: payload.country,
-                          status: payload.status
-                      }
-                    : item
-            )
-        );
-        setViewApplicant((prev) =>
-            prev?.id === editingApplicant.id
-                ? {
-                      ...prev,
-                      ...payload,
-                      contact_number: payload.contact_number,
-                      gender: payload.gender,
-                      age: payload.age,
-                      address: payload.address,
-                      country: payload.country,
-                      status: payload.status
-                  }
-                : prev
-        );
-
-        const nextStatus = payload.status;
-        await sendDecisionEmail(payload, previousStatus, nextStatus);
-
-        setEditingApplicant(null);
-        setEditForm(null);
-        setIsSaving(false);
     };
 
     const handleQuickStatusUpdate = async (
@@ -444,7 +335,11 @@ export const AdminApplicants: React.FC = () => {
                             {paginated.map((item) => (
                                 <div key={item.id} className="px-6 py-5">
                                     <div className="flex flex-wrap items-start justify-between gap-4">
-                                        <div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setViewApplicant(item)}
+                                            className="min-w-0 flex-1 text-left"
+                                        >
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <p className="text-base font-semibold">{item.name}</p>
                                                 <span
@@ -468,7 +363,7 @@ export const AdminApplicants: React.FC = () => {
                                             <p className="text-xs text-black/50">
                                                 Submitted {formatDate(item.created_at)}
                                             </p>
-                                        </div>
+                                        </button>
                                         <div className="flex items-center gap-2">
                                             <button
                                                 type="button"
@@ -558,17 +453,6 @@ export const AdminApplicants: React.FC = () => {
                                                     <button
                                                         type="button"
                                                         onClick={() => {
-                                                            setEditingApplicant(item);
-                                                            setMenuOpenId(null);
-                                                        }}
-                                                        className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-black/70 transition hover:bg-black/5 hover:text-black"
-                                                        role="menuitem"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
                                                             handleDelete(item);
                                                             setMenuOpenId(null);
                                                         }}
@@ -629,6 +513,7 @@ export const AdminApplicants: React.FC = () => {
                             <div>
                                 <p className="text-xs uppercase tracking-[0.3em] text-black/50">Applicant</p>
                                 <h2 className="mt-1 text-xl font-semibold text-black">{viewApplicant.name}</h2>
+                                <p className="mt-2 text-xs text-black/50">Applicant submissions are read-only for admins.</p>
                             </div>
                         </div>
 
@@ -719,121 +604,6 @@ export const AdminApplicants: React.FC = () => {
                                 className="rounded-full bg-[#0a2f22] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0d3b2b]"
                             >
                                 Close Preview
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {editingApplicant && editForm && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
-                    <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-semibold text-black">Edit Applicant</h2>
-                            <button
-                                type="button"
-                                onClick={() => setEditingApplicant(null)}
-                                className="text-sm text-black/60 hover:text-black"
-                            >
-                                Close
-                            </button>
-                        </div>
-                        <div className="mt-4 grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label className="text-xs font-semibold text-black/60">Name</label>
-                                <input
-                                    value={editForm.name}
-                                    onChange={handleEditChange('name')}
-                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-black/60">Email</label>
-                                <input
-                                    value={editForm.email}
-                                    onChange={handleEditChange('email')}
-                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-black/60">Contact</label>
-                                <input
-                                    value={editForm.contact_number}
-                                    onChange={handleEditChange('contact_number')}
-                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-black/60">Gender</label>
-                                <input
-                                    value={editForm.gender}
-                                    onChange={handleEditChange('gender')}
-                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-black/60">Age</label>
-                                <input
-                                    value={editForm.age}
-                                    onChange={handleEditChange('age')}
-                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-black/60">Status</label>
-                                <select
-                                    value={editForm.status}
-                                    onChange={(event) => setEditForm({ ...editForm, status: event.target.value })}
-                                    className="mt-2 h-11 w-full rounded-xl border border-black/10 px-3 text-sm text-black"
-                                >
-                                    {applicantStatuses.map((status) => (
-                                        <option key={status} value={status}>
-                                            {status}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-black/60">Position</label>
-                                <input
-                                    value={editForm.position}
-                                    onChange={handleEditChange('position')}
-                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-black/60">Country</label>
-                                <input
-                                    value={editForm.country}
-                                    onChange={handleEditChange('country')}
-                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-black/60">Address</label>
-                                <input
-                                    value={editForm.address}
-                                    onChange={handleEditChange('address')}
-                                    className="mt-2 w-full h-11 rounded-xl border border-black/10 px-3 text-sm"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="mt-6 flex items-center justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setEditingApplicant(null)}
-                                className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/60 hover:text-black"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleSaveEdit}
-                                disabled={isSaving}
-                                className="rounded-full bg-[#0a2f22] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0d3b2b] disabled:cursor-not-allowed disabled:opacity-70"
-                            >
-                                {isSaving ? 'Saving...' : 'Save Changes'}
                             </button>
                         </div>
                     </div>

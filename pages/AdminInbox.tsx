@@ -427,18 +427,11 @@ export const AdminInbox: React.FC = () => {
                         className="w-full max-w-2xl rounded-3xl bg-white shadow-[0_30px_80px_rgba(0,0,0,0.45)] pointer-events-auto"
                         onClick={(event) => event.stopPropagation()}
                     >
-                        <div className="flex items-center justify-between border-b border-black/10 px-6 py-4">
+                        <div className="border-b border-black/10 px-6 py-4">
                             <div>
                                 <p className="text-xs uppercase tracking-[0.3em] text-black/50">Compose</p>
                                 <h2 className="text-lg font-semibold text-black">Reply to {composeName}</h2>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setComposeOpen(false)}
-                                className="text-sm text-black/60 hover:text-black"
-                            >
-                                Close
-                            </button>
                         </div>
                         <div className="px-6 py-5">
                             <div className="space-y-4">
