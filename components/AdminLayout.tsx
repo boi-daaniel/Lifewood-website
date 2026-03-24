@@ -75,6 +75,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 .from('admin_profiles')
                 .select('username, role, phone, department, location, avatar_url')
                 .eq('id', user.id)
+                .eq('record_status', 'Active')
                 .maybeSingle();
 
             const displayName = adminProfile?.username || user.email?.split('@')[0] || 'Admin';

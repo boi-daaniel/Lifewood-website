@@ -35,6 +35,7 @@ export const RequireSuperAdmin: React.FC = () => {
                 .from('admin_profiles')
                 .select('role')
                 .eq('id', sessionData.session.user.id)
+                .eq('record_status', 'Active')
                 .maybeSingle();
 
             if (adminError || !adminProfile) {

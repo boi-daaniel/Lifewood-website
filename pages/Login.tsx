@@ -117,6 +117,7 @@ export const Login: React.FC = () => {
                     .from('admin_profiles')
                     .select('id')
                     .eq('id', userId)
+                    .eq('record_status', 'Active')
                     .maybeSingle();
 
                 if (adminError || !adminProfile) {

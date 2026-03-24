@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '../components/AdminLayout';
 import { supabase } from '../lib/supabaseClient';
-import { getSoftDeletedIds, SOFT_DELETE_KEYS } from '../lib/adminSoftDelete';
 
 type MetricState = {
     totalMessages: number;
@@ -61,17 +60,16 @@ export const AdminAnalytics: React.FC = () => {
                 return;
             }
 
-            const hiddenMessageIds = getSoftDeletedIds(SOFT_DELETE_KEYS.contactMessages);
-            const hiddenApplicantIds = getSoftDeletedIds(SOFT_DELETE_KEYS.applicants);
-
             const [messageResult, applicantResult] = await Promise.all([
                 supabase
                     .from('contact_messages')
                     .select('id, name, created_at, is_read')
+                    .eq('record_status', 'Active')
                     .order('created_at', { ascending: false }),
                 supabase
                     .from('career_applications')
                     .select('id, name, created_at')
+                    .eq('record_status', 'Active')
                     .order('created_at', { ascending: false })
             ]);
 
@@ -81,8 +79,8 @@ export const AdminAnalytics: React.FC = () => {
                 setError(messageResult.error?.message ?? applicantResult.error?.message ?? null);
             }
 
-            const visibleMessages = (messageResult.data ?? []).filter((item) => !hiddenMessageIds.includes(item.id));
-            const visibleApplicants = (applicantResult.data ?? []).filter((item) => !hiddenApplicantIds.includes(item.id));
+            const visibleMessages = messageResult.data ?? [];
+            const visibleApplicants = applicantResult.data ?? [];
             const latestMessageName = visibleMessages[0]?.name ?? '--';
             const latestApplicantName = visibleApplicants[0]?.name ?? '--';
 

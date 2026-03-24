@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import emailjs from '@emailjs/browser';
 import { AdminLayout } from '../components/AdminLayout';
 import { supabase } from '../lib/supabaseClient';
-import { addSoftDeletedId, getSoftDeletedIds, SOFT_DELETE_KEYS } from '../lib/adminSoftDelete';
 
 type Applicant = {
     id: string;
@@ -54,17 +53,16 @@ export const AdminApplicants: React.FC = () => {
     const [editingApplicant, setEditingApplicant] = useState<Applicant | null>(null);
     const [editForm, setEditForm] = useState<EditForm | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [statusUpdateAction, setStatusUpdateAction] = useState<{
+        id: string;
+        status: 'Accepted' | 'Rejected';
+    } | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
     const [viewApplicant, setViewApplicant] = useState<Applicant | null>(null);
     const [resumePreview, setResumePreview] = useState<{ applicant: Applicant; url: string } | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const [hiddenApplicantIds, setHiddenApplicantIds] = useState<string[]>([]);
     const pageSize = 5;
-
-    useEffect(() => {
-        setHiddenApplicantIds(getSoftDeletedIds(SOFT_DELETE_KEYS.applicants));
-    }, []);
 
     useEffect(() => {
         let mounted = true;
@@ -83,6 +81,7 @@ export const AdminApplicants: React.FC = () => {
                 .select(
                     'id, name, email, contact_number, gender, age, address, country, position, status, resume_path, created_at'
                 )
+                .eq('record_status', 'Active')
                 .order('created_at', { ascending: false });
 
             if (!mounted) return;
@@ -107,9 +106,7 @@ export const AdminApplicants: React.FC = () => {
         timeStyle: 'short'
     });
 
-    const visibleApplications = applications.filter((item) => !hiddenApplicantIds.includes(item.id));
-
-    const filtered = visibleApplications.filter((item) => {
+    const filtered = applications.filter((item) => {
         const matchesStatus = statusFilter === 'All' || (item.status ?? 'New') === statusFilter;
         if (!matchesStatus) return false;
         if (!searchTerm.trim()) return true;
@@ -205,6 +202,65 @@ export const AdminApplicants: React.FC = () => {
         setEditForm({ ...editForm, [field]: event.target.value });
     };
 
+    const syncApplicantStatus = (applicationId: string, nextStatus: string) => {
+        setApplications((prev) =>
+            prev.map((item) => (item.id === applicationId ? { ...item, status: nextStatus } : item))
+        );
+        setViewApplicant((prev) => (prev?.id === applicationId ? { ...prev, status: nextStatus } : prev));
+        setEditingApplicant((prev) => (prev?.id === applicationId ? { ...prev, status: nextStatus } : prev));
+        setEditForm((prev) => (prev && editingApplicant?.id === applicationId ? { ...prev, status: nextStatus } : prev));
+    };
+
+    const sendDecisionEmail = async (
+        payload: Pick<Applicant, 'name' | 'email' | 'position'>,
+        previousStatus: string,
+        nextStatus: string
+    ) => {
+        if (previousStatus === nextStatus || !terminalStatuses.has(nextStatus)) return;
+
+        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined;
+        const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined;
+        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined;
+
+        if (!serviceId || !publicKey || !templateId) {
+            setError(
+                'Applicant status was updated, but EmailJS is not fully configured so no notification email was sent.'
+            );
+            return;
+        }
+
+        const decisionMessage =
+            nextStatus === 'Accepted'
+                ? `Hi ${payload.name},\n\nThank you for applying for the ${payload.position} role at Lifewood. We are pleased to let you know that your application has been accepted. Our team will contact you soon with the next steps.\n\nBest regards,\nLifewood`
+                : `Hi ${payload.name},\n\nThank you for applying for the ${payload.position} role at Lifewood. After reviewing your application, we regret to inform you that you were not selected for this opportunity.\n\nWe appreciate your time and interest in Lifewood, and we encourage you to apply again for future openings that match your experience.\n\nBest regards,\nLifewood`;
+
+        try {
+            await emailjs.send(
+                serviceId,
+                templateId,
+                {
+                    to_email: payload.email,
+                    to_name: payload.name,
+                    subject: `Lifewood Application Update: ${nextStatus}`,
+                    message: decisionMessage,
+                    applicant_name: payload.name,
+                    applicant_email: payload.email,
+                    position: payload.position,
+                    application_status: nextStatus,
+                    from_name: 'Lifewood',
+                    email_type: nextStatus === 'Accepted' ? 'application_accepted' : 'application_rejected'
+                },
+                publicKey
+            );
+        } catch (sendError) {
+            setError(
+                `Applicant status was updated, but the email notification could not be sent: ${
+                    sendError instanceof Error ? sendError.message : 'Unknown error'
+                }`
+            );
+        }
+    };
+
     const handleSaveEdit = async () => {
         if (!supabase || !editingApplicant || !editForm) return;
         setIsSaving(true);
@@ -250,66 +306,74 @@ export const AdminApplicants: React.FC = () => {
                     : item
             )
         );
+        setViewApplicant((prev) =>
+            prev?.id === editingApplicant.id
+                ? {
+                      ...prev,
+                      ...payload,
+                      contact_number: payload.contact_number,
+                      gender: payload.gender,
+                      age: payload.age,
+                      address: payload.address,
+                      country: payload.country,
+                      status: payload.status
+                  }
+                : prev
+        );
 
         const nextStatus = payload.status;
-        const shouldSendDecisionEmail =
-            previousStatus !== nextStatus && terminalStatuses.has(nextStatus);
-
-        if (shouldSendDecisionEmail) {
-            const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined;
-            const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined;
-            const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined;
-
-            if (serviceId && publicKey && templateId) {
-                const decisionMessage =
-                    nextStatus === 'Accepted'
-                        ? `Hi ${payload.name},\n\nThank you for applying for the ${payload.position} role at Lifewood. We are pleased to let you know that your application has been accepted. Our team will contact you soon with the next steps.\n\nBest regards,\nLifewood`
-                        : `Hi ${payload.name},\n\nThank you for applying for the ${payload.position} role at Lifewood. After reviewing your application, we regret to inform you that you were not selected for this opportunity.\n\nWe appreciate your time and interest in Lifewood, and we encourage you to apply again for future openings that match your experience.\n\nBest regards,\nLifewood`;
-
-                try {
-                    await emailjs.send(
-                        serviceId,
-                        templateId,
-                        {
-                            to_email: payload.email,
-                            to_name: payload.name,
-                            subject: `Lifewood Application Update: ${nextStatus}`,
-                            message: decisionMessage,
-                            applicant_name: payload.name,
-                            applicant_email: payload.email,
-                            position: payload.position,
-                            application_status: nextStatus,
-                            from_name: 'Lifewood',
-                            email_type: nextStatus === 'Accepted' ? 'application_accepted' : 'application_rejected'
-                        },
-                        publicKey
-                    );
-                } catch (sendError) {
-                    setError(
-                        `Applicant status was updated, but the email notification could not be sent: ${
-                            sendError instanceof Error ? sendError.message : 'Unknown error'
-                        }`
-                    );
-                }
-            } else {
-                setError(
-                    'Applicant status was updated, but EmailJS is not fully configured so no notification email was sent.'
-                );
-            }
-        }
+        await sendDecisionEmail(payload, previousStatus, nextStatus);
 
         setEditingApplicant(null);
         setEditForm(null);
         setIsSaving(false);
     };
 
+    const handleQuickStatusUpdate = async (
+        application: Applicant,
+        nextStatus: 'Accepted' | 'Rejected'
+    ) => {
+        if (!supabase) return;
+        if ((application.status ?? 'New') === nextStatus) return;
+
+        setStatusUpdateAction({ id: application.id, status: nextStatus });
+        setError(null);
+
+        const { error: updateError } = await supabase
+            .from('career_applications')
+            .update({ status: nextStatus })
+            .eq('id', application.id);
+
+        if (updateError) {
+            setError(updateError.message);
+            setStatusUpdateAction(null);
+            return;
+        }
+
+        syncApplicantStatus(application.id, nextStatus);
+        await sendDecisionEmail(application, application.status ?? 'New', nextStatus);
+        setStatusUpdateAction(null);
+    };
+
     const handleDelete = async (application: Applicant) => {
-        const confirmed = window.confirm(`Hide application from ${application.name} in the admin UI? It will remain in the database.`);
+        if (!supabase) return;
+        const confirmed = window.confirm(`Mark application from ${application.name} as deleted? It will remain in the database.`);
         if (!confirmed) return;
 
         setDeletingId(application.id);
         setError(null);
-        setHiddenApplicantIds(addSoftDeletedId(SOFT_DELETE_KEYS.applicants, application.id));
+        const { error: updateError } = await supabase
+            .from('career_applications')
+            .update({ record_status: 'Deleted' })
+            .eq('id', application.id);
+
+        if (updateError) {
+            setError(updateError.message);
+            setDeletingId(null);
+            return;
+        }
+
+        setApplications((prev) => prev.filter((item) => item.id !== application.id));
         if (viewApplicant?.id === application.id) {
             setViewApplicant(null);
         }
@@ -369,7 +433,7 @@ export const AdminApplicants: React.FC = () => {
                         <div className="px-6 py-6 text-sm text-red-600">{error}</div>
                     )}
 
-                    {!isLoading && !error && visibleApplications.length === 0 && (
+                    {!isLoading && !error && applications.length === 0 && (
                         <div className="px-6 py-10 text-sm text-black/60">
                             No applications yet. New submissions will appear here.
                         </div>
@@ -405,26 +469,47 @@ export const AdminApplicants: React.FC = () => {
                                                 Submitted {formatDate(item.created_at)}
                                             </p>
                                         </div>
-                                        <div className="relative">
+                                        <div className="flex items-center gap-2">
                                             <button
                                                 type="button"
-                                                onClick={(event) => {
-                                                    event.stopPropagation();
-                                                    setMenuOpenId((prev) => (prev === item.id ? null : item.id))
-                                                }}
-                                                className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-lg text-black/60 transition hover:border-black/30 hover:text-black"
-                                                aria-haspopup="menu"
-                                                aria-expanded={menuOpenId === item.id}
-                                                aria-label="Applicant actions"
+                                                onClick={() => handleQuickStatusUpdate(item, 'Accepted')}
+                                                disabled={statusUpdateAction?.id === item.id || item.status === 'Accepted'}
+                                                className="rounded-full bg-emerald-600 px-3 py-2 text-[11px] font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                                             >
-                                                ...
+                                                {statusUpdateAction?.id === item.id && statusUpdateAction.status === 'Accepted'
+                                                    ? 'Saving...'
+                                                    : 'Accept'}
                                             </button>
-                                            {menuOpenId === item.id && (
-                                                <div
-                                                    onClick={(event) => event.stopPropagation()}
-                                                    className="absolute right-0 top-11 z-10 w-44 rounded-2xl border border-black/10 bg-white p-2 shadow-[0_20px_40px_rgba(0,0,0,0.16)]"
-                                                    role="menu"
+                                            <button
+                                                type="button"
+                                                onClick={() => handleQuickStatusUpdate(item, 'Rejected')}
+                                                disabled={statusUpdateAction?.id === item.id || item.status === 'Rejected'}
+                                                className="rounded-full bg-rose-600 px-3 py-2 text-[11px] font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {statusUpdateAction?.id === item.id && statusUpdateAction.status === 'Rejected'
+                                                    ? 'Saving...'
+                                                    : 'Reject'}
+                                            </button>
+                                            <div className="relative">
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        setMenuOpenId((prev) => (prev === item.id ? null : item.id))
+                                                    }}
+                                                    className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-lg text-black/60 transition hover:border-black/30 hover:text-black"
+                                                    aria-haspopup="menu"
+                                                    aria-expanded={menuOpenId === item.id}
+                                                    aria-label="Applicant actions"
                                                 >
+                                                    ...
+                                                </button>
+                                                {menuOpenId === item.id && (
+                                                    <div
+                                                        onClick={(event) => event.stopPropagation()}
+                                                        className="absolute right-0 top-11 z-10 w-44 rounded-2xl border border-black/10 bg-white p-2 shadow-[0_20px_40px_rgba(0,0,0,0.16)]"
+                                                        role="menu"
+                                                    >
                                                     <button
                                                         type="button"
                                                         onClick={() => {
@@ -490,11 +575,12 @@ export const AdminApplicants: React.FC = () => {
                                                         disabled={deletingId === item.id}
                                                         className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                                                         role="menuitem"
-                                                    >
-                                                        {deletingId === item.id ? 'Deleting...' : 'Delete'}
-                                                    </button>
-                                                </div>
-                                            )}
+                                                        >
+                                                            {deletingId === item.id ? 'Deleting...' : 'Delete'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -502,7 +588,7 @@ export const AdminApplicants: React.FC = () => {
                         </div>
                     )}
 
-                    {!isLoading && !error && visibleApplications.length > 0 && filtered.length === 0 && (
+                    {!isLoading && !error && applications.length > 0 && filtered.length === 0 && (
                         <div className="px-6 py-10 text-sm text-black/60">
                             No applicants match your search.
                         </div>

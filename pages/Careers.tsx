@@ -30,6 +30,44 @@ const positions = [
 
 type CareerView = 'apply' | 'message';
 
+const NAME_SANITIZE_REGEX = /[^A-Za-z\s.'-]/g;
+const CONTACT_SANITIZE_REGEX = /[^0-9()+\-\s]/g;
+const ADDRESS_SANITIZE_REGEX = /[^A-Za-z0-9\s.,#'/-]/g;
+const COUNTRY_SANITIZE_REGEX = /[^A-Za-z\s.'-]/g;
+const MESSAGE_SANITIZE_REGEX = /[^A-Za-z0-9\s.,!?'"()&:/@#%+-]/g;
+
+const NAME_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,79}$/;
+const CONTACT_REGEX = /^[0-9()+\-\s]{7,20}$/;
+const ADDRESS_REGEX = /^[A-Za-z0-9\s.,#'/-]{5,160}$/;
+const COUNTRY_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,79}$/;
+const MESSAGE_REGEX = /^[A-Za-z0-9\s.,!?'"()&:/@#%+-]{10,1000}$/;
+
+const sanitizeApplicationField = (field: string, value: string) => {
+    switch (field) {
+        case 'name':
+            return value.replace(NAME_SANITIZE_REGEX, '');
+        case 'contactNumber':
+            return value.replace(CONTACT_SANITIZE_REGEX, '');
+        case 'address':
+            return value.replace(ADDRESS_SANITIZE_REGEX, '');
+        case 'country':
+            return value.replace(COUNTRY_SANITIZE_REGEX, '');
+        default:
+            return value;
+    }
+};
+
+const sanitizeMessageField = (field: string, value: string) => {
+    switch (field) {
+        case 'name':
+            return value.replace(NAME_SANITIZE_REGEX, '');
+        case 'message':
+            return value.replace(MESSAGE_SANITIZE_REGEX, '');
+        default:
+            return value;
+    }
+};
+
 export const Careers: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [activeView, setActiveView] = useState<CareerView>('apply');
@@ -59,18 +97,46 @@ export const Careers: React.FC = () => {
     const handleApplyChange =
         (field: keyof typeof applyForm) =>
         (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-            setApplyForm((prev) => ({ ...prev, [field]: event.target.value }));
+            const nextValue = sanitizeApplicationField(field, event.target.value);
+            setApplyForm((prev) => ({ ...prev, [field]: nextValue }));
         };
 
     const handleMessageChange =
         (field: keyof typeof contactForm) =>
         (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-            setContactForm((prev) => ({ ...prev, [field]: event.target.value }));
+            const nextValue = sanitizeMessageField(field, event.target.value);
+            setContactForm((prev) => ({ ...prev, [field]: nextValue }));
         };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] ?? null;
         setApplyForm((prev) => ({ ...prev, resumeFile: file }));
+    };
+
+    const getApplicationValidationError = () => {
+        if (!NAME_REGEX.test(applyForm.name.trim())) {
+            return 'Please enter a valid full name using letters and basic punctuation only.';
+        }
+        if (!CONTACT_REGEX.test(applyForm.contactNumber.trim())) {
+            return 'Please enter a valid contact number using numbers and phone symbols only.';
+        }
+        if (applyForm.address.trim() && !ADDRESS_REGEX.test(applyForm.address.trim())) {
+            return 'Please enter a valid address using letters, numbers, and basic punctuation only.';
+        }
+        if (applyForm.country.trim() && !COUNTRY_REGEX.test(applyForm.country.trim())) {
+            return 'Please enter a valid country using letters and basic punctuation only.';
+        }
+        return null;
+    };
+
+    const getContactValidationError = () => {
+        if (!NAME_REGEX.test(contactForm.name.trim())) {
+            return 'Please enter a valid name using letters and basic punctuation only.';
+        }
+        if (!MESSAGE_REGEX.test(contactForm.message.trim())) {
+            return 'Please enter a valid message using letters, numbers, and basic punctuation only.';
+        }
+        return null;
     };
 
     const handleApplicationSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -94,6 +160,12 @@ export const Careers: React.FC = () => {
 
         if (!applyForm.name || !applyForm.email || !applyForm.position || !applyForm.resumeFile) {
             setApplyStatus({ type: 'error', message: 'Please fill out the required fields and attach your resume.' });
+            return;
+        }
+
+        const validationError = getApplicationValidationError();
+        if (validationError) {
+            setApplyStatus({ type: 'error', message: validationError });
             return;
         }
 
@@ -124,6 +196,7 @@ export const Careers: React.FC = () => {
                 country: applyForm.country,
                 position: applyForm.position,
                 status: 'New',
+                record_status: 'Active',
                 resume_path: fileName
             });
 
@@ -195,6 +268,12 @@ export const Careers: React.FC = () => {
             return;
         }
 
+        const validationError = getContactValidationError();
+        if (validationError) {
+            setMessageStatus({ type: 'error', message: validationError });
+            return;
+        }
+
         if (!supabase) {
             setMessageStatus({ type: 'error', message: 'Supabase is not configured yet.' });
             return;
@@ -215,7 +294,8 @@ export const Careers: React.FC = () => {
             const { error: insertError } = await supabase.from('contact_messages').insert({
                 name: contactForm.name,
                 email: contactForm.email,
-                message: contactForm.message
+                message: contactForm.message,
+                record_status: 'Active'
             });
 
             if (insertError) throw insertError;
@@ -371,6 +451,7 @@ export const Careers: React.FC = () => {
                                                 type="text"
                                                 value={applyForm.name}
                                                 onChange={handleApplyChange('name')}
+                                                maxLength={80}
                                                 required
                                                 className="mt-2 h-11 w-full rounded-lg border border-white/10 bg-black/20 px-4 text-white outline-none focus:border-white/30"
                                             />
@@ -381,6 +462,7 @@ export const Careers: React.FC = () => {
                                                 type="tel"
                                                 value={applyForm.contactNumber}
                                                 onChange={handleApplyChange('contactNumber')}
+                                                maxLength={20}
                                                 required
                                                 className="mt-2 h-11 w-full rounded-lg border border-white/10 bg-black/20 px-4 text-white outline-none focus:border-white/30"
                                             />
@@ -427,18 +509,20 @@ export const Careers: React.FC = () => {
                                                 type="text"
                                                 value={applyForm.address}
                                                 onChange={handleApplyChange('address')}
+                                                maxLength={160}
                                                 className="mt-2 h-11 w-full rounded-lg border border-white/10 bg-black/20 px-4 text-white outline-none focus:border-white/30"
                                             />
                                         </div>
                                         <div className="grid gap-4 md:grid-cols-2">
                                             <div>
                                                 <label className="text-sm font-medium text-white/90">Country</label>
-                                                <input
-                                                    type="text"
-                                                    value={applyForm.country}
-                                                    onChange={handleApplyChange('country')}
-                                                    className="mt-2 h-11 w-full rounded-lg border border-white/10 bg-black/20 px-4 text-white outline-none focus:border-white/30"
-                                                />
+                                            <input
+                                                type="text"
+                                                value={applyForm.country}
+                                                onChange={handleApplyChange('country')}
+                                                maxLength={80}
+                                                className="mt-2 h-11 w-full rounded-lg border border-white/10 bg-black/20 px-4 text-white outline-none focus:border-white/30"
+                                            />
                                             </div>
                                             <div>
                                                 <label className="text-sm font-medium text-white/90">Position *</label>
@@ -511,6 +595,7 @@ export const Careers: React.FC = () => {
                                                 type="text"
                                                 value={contactForm.name}
                                                 onChange={handleMessageChange('name')}
+                                                maxLength={80}
                                                 required
                                                 className="mt-2 h-11 w-full rounded-lg border border-white/10 bg-black/20 px-4 text-white outline-none focus:border-white/30"
                                             />
@@ -531,6 +616,7 @@ export const Careers: React.FC = () => {
                                                 value={contactForm.message}
                                                 onChange={handleMessageChange('message')}
                                                 required
+                                                maxLength={1000}
                                                 placeholder="Message here..."
                                                 className="mt-2 min-h-[190px] w-full rounded-lg border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-white/45 focus:border-white/30 resize-none"
                                             />

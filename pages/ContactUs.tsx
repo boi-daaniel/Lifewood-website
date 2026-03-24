@@ -39,7 +39,8 @@ export const ContactUs: React.FC = () => {
             const { error: insertError } = await supabase.from('contact_messages').insert({
                 name,
                 email,
-                message
+                message,
+                record_status: 'Active'
             });
 
             if (insertError) {

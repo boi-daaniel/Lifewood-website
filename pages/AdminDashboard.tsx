@@ -4,7 +4,6 @@ import { AdminLayout } from '../components/AdminLayout';
 import DarkVeil from '../components/DarkVeil';
 import { supabase } from '../lib/supabaseClient';
 import { getTimeZoneForCountry } from '../lib/countries';
-import { getSoftDeletedIds, SOFT_DELETE_KEYS } from '../lib/adminSoftDelete';
 
 export const AdminDashboard: React.FC = () => {
     const [currentDateTime, setCurrentDateTime] = useState('');
@@ -68,25 +67,24 @@ export const AdminDashboard: React.FC = () => {
                 setAdminTimeZone(tz);
             }
 
-            const hiddenMessageIds = getSoftDeletedIds(SOFT_DELETE_KEYS.contactMessages);
-            const hiddenApplicantIds = getSoftDeletedIds(SOFT_DELETE_KEYS.applicants);
-
             const [{ data: messageRows, error: messageError }, { data: applicantRows, error: appError }] =
                 await Promise.all([
                     supabase
                         .from('contact_messages')
                         .select('id, name, created_at, is_read')
+                        .eq('record_status', 'Active')
                         .order('created_at', { ascending: false }),
                     supabase
                         .from('career_applications')
                         .select('id')
+                        .eq('record_status', 'Active')
                 ]);
 
             if (!mounted) return;
 
-            const visibleMessages = (messageRows ?? []).filter((item) => !hiddenMessageIds.includes(item.id));
+            const visibleMessages = messageRows ?? [];
             const latestMessage = visibleMessages[0];
-            const visibleApplicants = (applicantRows ?? []).filter((item) => !hiddenApplicantIds.includes(item.id));
+            const visibleApplicants = applicantRows ?? [];
 
             setMessageStats({
                 total: messageError ? 0 : visibleMessages.length,

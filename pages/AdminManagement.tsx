@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { AdminLayout } from '../components/AdminLayout';
 import { supabase } from '../lib/supabaseClient';
 import { COUNTRY_OPTIONS, getCountryLabel, normalizeCountryValue } from '../lib/countries';
-import { addSoftDeletedId, getSoftDeletedIds, SOFT_DELETE_KEYS } from '../lib/adminSoftDelete';
 
 type AdminUser = {
     id: string;
@@ -45,11 +44,6 @@ export const AdminManagement: React.FC = () => {
     const [isCreating, setIsCreating] = useState(false);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
-    const [hiddenAdminIds, setHiddenAdminIds] = useState<string[]>([]);
-
-    useEffect(() => {
-        setHiddenAdminIds(getSoftDeletedIds(SOFT_DELETE_KEYS.admins));
-    }, []);
 
     useEffect(() => {
         let mounted = true;
@@ -71,6 +65,7 @@ export const AdminManagement: React.FC = () => {
             const { data, error: fetchError } = await supabase
                 .from('admin_profiles')
                 .select('id, username, role, phone, department, location, avatar_url')
+                .eq('record_status', 'Active')
                 .order('username', { ascending: true });
 
             if (!mounted) return;
@@ -201,12 +196,24 @@ export const AdminManagement: React.FC = () => {
             setError('You cannot delete your own admin account.');
             return;
         }
-        const confirmed = window.confirm(`Hide admin ${admin.username ?? 'Admin'} in the admin UI? The account will remain in the database.`);
+        if (!supabase) return;
+        const confirmed = window.confirm(`Mark admin ${admin.username ?? 'Admin'} as deleted? The account will remain in the database.`);
         if (!confirmed) return;
 
         setDeletingId(admin.id);
         setError(null);
-        setHiddenAdminIds(addSoftDeletedId(SOFT_DELETE_KEYS.admins, admin.id));
+        const { error: updateError } = await supabase
+            .from('admin_profiles')
+            .update({ record_status: 'Deleted' })
+            .eq('id', admin.id);
+
+        if (updateError) {
+            setError(updateError.message);
+            setDeletingId(null);
+            return;
+        }
+
+        setAdmins((prev) => prev.filter((item) => item.id !== admin.id));
         setDeletingId(null);
     };
 
@@ -258,9 +265,7 @@ export const AdminManagement: React.FC = () => {
         setIsSaving(false);
     };
 
-    const visibleAdmins = admins.filter((admin) => !hiddenAdminIds.includes(admin.id));
-
-    const filteredAdmins = visibleAdmins.filter((admin) => {
+    const filteredAdmins = admins.filter((admin) => {
         const matchesRole = roleFilter === 'All' || (admin.role ?? 'Admin') === roleFilter;
         if (!matchesRole) return false;
         if (!searchTerm.trim()) return true;

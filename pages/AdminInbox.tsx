@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import emailjs from '@emailjs/browser';
 import { AdminLayout } from '../components/AdminLayout';
 import { supabase } from '../lib/supabaseClient';
-import { addSoftDeletedId, getSoftDeletedIds, SOFT_DELETE_KEYS } from '../lib/adminSoftDelete';
 
 type ContactMessage = {
     id: string;
@@ -30,11 +29,7 @@ export const AdminInbox: React.FC = () => {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const [hiddenMessageIds, setHiddenMessageIds] = useState<string[]>([]);
-
-    useEffect(() => {
-        setHiddenMessageIds(getSoftDeletedIds(SOFT_DELETE_KEYS.contactMessages));
-    }, []);
+    const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
 
     useEffect(() => {
         let mounted = true;
@@ -51,6 +46,7 @@ export const AdminInbox: React.FC = () => {
             const { data, error: fetchError } = await supabase
                 .from('contact_messages')
                 .select('id, name, email, message, created_at, is_read')
+                .eq('record_status', 'Active')
                 .order('created_at', { ascending: false });
 
             if (!mounted) return;
@@ -75,9 +71,9 @@ export const AdminInbox: React.FC = () => {
             timeStyle: 'short'
         });
 
-    const handleToggleRead = async (message: ContactMessage) => {
+    const handleSetReadState = async (message: ContactMessage, nextValue: boolean) => {
         if (!supabase) return;
-        const nextValue = !message.is_read;
+        if (message.is_read === nextValue) return;
         setMessages((prev) =>
             prev.map((item) => (item.id === message.id ? { ...item, is_read: nextValue } : item))
         );
@@ -97,9 +93,11 @@ export const AdminInbox: React.FC = () => {
         }
     };
 
-    const visibleMessages = messages.filter((item) => !hiddenMessageIds.includes(item.id));
+    const handleToggleRead = async (message: ContactMessage) => {
+        await handleSetReadState(message, !message.is_read);
+    };
 
-    const filteredMessages = visibleMessages.filter((item) => {
+    const filteredMessages = messages.filter((item) => {
         if (filterStatus === 'unread' && item.is_read) return false;
         if (filterStatus === 'read' && !item.is_read) return false;
         if (!searchTerm.trim()) return true;
@@ -126,11 +124,12 @@ export const AdminInbox: React.FC = () => {
         setCurrentPage(1);
     }, [searchTerm, filterStatus, sortOrder]);
 
-    const unreadCount = visibleMessages.filter((item) => !item.is_read).length;
+    const unreadCount = messages.filter((item) => !item.is_read).length;
     const pageSize = 10;
     const totalPages = Math.max(1, Math.ceil(sortedMessages.length / pageSize));
     const safePage = Math.min(currentPage, totalPages);
     const pagedMessages = sortedMessages.slice((safePage - 1) * pageSize, safePage * pageSize);
+    const selectedMessage = messages.find((item) => item.id === selectedMessageId) ?? null;
 
     const openReply = (item: ContactMessage) => {
         setComposeTo(item.email);
@@ -141,6 +140,13 @@ export const AdminInbox: React.FC = () => {
         );
         setSendStatus(null);
         setComposeOpen(true);
+    };
+
+    const handleOpenMessage = async (item: ContactMessage) => {
+        setSelectedMessageId(item.id);
+        if (!item.is_read) {
+            await handleSetReadState(item, true);
+        }
     };
 
     const handleSendReply = async () => {
@@ -190,12 +196,27 @@ export const AdminInbox: React.FC = () => {
     };
 
     const handleDelete = async (message: ContactMessage) => {
-        const confirmed = window.confirm(`Hide message from ${message.name} in the admin UI? It will remain in the database.`);
+        if (!supabase) return;
+        const confirmed = window.confirm(`Mark message from ${message.name} as deleted? It will remain in the database.`);
         if (!confirmed) return;
 
         setDeletingId(message.id);
         setError(null);
-        setHiddenMessageIds(addSoftDeletedId(SOFT_DELETE_KEYS.contactMessages, message.id));
+        const { error: updateError } = await supabase
+            .from('contact_messages')
+            .update({ record_status: 'Deleted' })
+            .eq('id', message.id);
+
+        if (updateError) {
+            setError(updateError.message);
+            setDeletingId(null);
+            return;
+        }
+
+        setMessages((prev) => prev.filter((item) => item.id !== message.id));
+        if (selectedMessageId === message.id) {
+            setSelectedMessageId(null);
+        }
         setDeletingId(null);
     };
 
@@ -258,7 +279,7 @@ export const AdminInbox: React.FC = () => {
                         <div className="px-6 py-6 text-sm text-red-600">{error}</div>
                     )}
 
-                    {!isLoading && !error && visibleMessages.length === 0 && (
+                    {!isLoading && !error && messages.length === 0 && (
                         <div className="px-6 py-10 text-sm text-black/60">
                             No messages yet. New contact form submissions will appear here.
                         </div>
@@ -268,25 +289,28 @@ export const AdminInbox: React.FC = () => {
                         <div className="divide-y divide-black/10">
                             {pagedMessages.map((item) => (
                                 <div key={item.id} className="px-6 py-5">
-                                    <div className="flex flex-wrap items-center justify-between gap-3">
-                                        <div>
-                                            <p className="text-base font-semibold">{item.name}</p>
-                                            <a
-                                                href={`mailto:${item.email}`}
-                                                className="text-sm text-black/60 hover:text-black"
-                                            >
+                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOpenMessage(item)}
+                                            className="min-w-0 flex-1 text-left"
+                                        >
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span
+                                                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                                        item.is_read
+                                                            ? 'bg-black/5 text-black/50'
+                                                            : 'bg-[#c9ff3c] text-black'
+                                                    }`}
+                                                >
+                                                    {item.is_read ? 'Read' : 'Unread'}
+                                                </span>
+                                                <p className="text-base font-semibold">{item.name}</p>
+                                            </div>
+                                            <p className="text-sm text-black/60">
                                                 {item.email}
-                                            </a>
-                                            <span
-                                                className={`ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                                                    item.is_read
-                                                        ? 'bg-black/5 text-black/50'
-                                                        : 'bg-[#c9ff3c] text-black'
-                                                }`}
-                                            >
-                                                {item.is_read ? 'Read' : 'Unread'}
-                                            </span>
-                                        </div>
+                                            </p>
+                                        </button>
                                         <div className="flex items-center gap-2 text-xs text-black/50">
                                             <span>{formatDate(item.created_at)}</span>
                                             <div className="relative">
@@ -303,8 +327,19 @@ export const AdminInbox: React.FC = () => {
                                                 {menuOpenId === item.id && (
                                                     <div
                                                         className="absolute right-0 top-9 z-10 w-40 rounded-xl border border-black/10 bg-white p-1 shadow-[0_16px_30px_rgba(0,0,0,0.15)]"
-                                                        role="menu"
-                                                    >
+                                                    role="menu"
+                                                >
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleOpenMessage(item);
+                                                                setMenuOpenId(null);
+                                                            }}
+                                                            className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-black/70 hover:bg-black/5"
+                                                            role="menuitem"
+                                                        >
+                                                            View
+                                                        </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => {
@@ -344,7 +379,6 @@ export const AdminInbox: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <p className="mt-3 text-sm text-black/70 whitespace-pre-wrap">{item.message}</p>
                                 </div>
                             ))}
                         </div>
@@ -376,7 +410,7 @@ export const AdminInbox: React.FC = () => {
                         </div>
                     )}
 
-                    {!isLoading && !error && visibleMessages.length > 0 && sortedMessages.length === 0 && (
+                    {!isLoading && !error && messages.length > 0 && sortedMessages.length === 0 && (
                         <div className="px-6 py-10 text-sm text-black/60">
                             No messages match your current search or filters.
                         </div>
@@ -463,6 +497,61 @@ export const AdminInbox: React.FC = () => {
                                 className="rounded-full bg-[#0a2f22] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0d3b2b] disabled:cursor-not-allowed disabled:opacity-70"
                             >
                                 {isSending ? 'Sending...' : 'Send Reply'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {selectedMessage && (
+                <div
+                    className="fixed inset-0 z-[210] flex items-end justify-center bg-black/50 px-4 pb-6 sm:items-center sm:pb-0"
+                    onClick={() => setSelectedMessageId(null)}
+                >
+                    <div
+                        className="w-full max-w-2xl rounded-3xl bg-white shadow-[0_30px_80px_rgba(0,0,0,0.45)]"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="border-b border-black/10 px-6 py-4">
+                            <p className="text-xs uppercase tracking-[0.3em] text-black/50">Message</p>
+                            <h2 className="mt-1 text-lg font-semibold text-black">{selectedMessage.name}</h2>
+                            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-black/50">
+                                <span>{selectedMessage.email}</span>
+                                <span>|</span>
+                                <span>{formatDate(selectedMessage.created_at)}</span>
+                                <span
+                                    className={`inline-flex items-center rounded-full px-2 py-0.5 font-semibold ${
+                                        selectedMessage.is_read
+                                            ? 'bg-black/5 text-black/50'
+                                            : 'bg-[#c9ff3c] text-black'
+                                    }`}
+                                >
+                                    {selectedMessage.is_read ? 'Read' : 'Unread'}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="px-6 py-5">
+                            <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-4 text-sm text-black/80 whitespace-pre-wrap">
+                                {selectedMessage.message}
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-3 border-t border-black/10 px-6 py-4">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    openReply(selectedMessage);
+                                    setSelectedMessageId(null);
+                                }}
+                                className="rounded-full bg-[#0a2f22] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0d3b2b]"
+                            >
+                                Reply
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedMessageId(null)}
+                                className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/60 hover:text-black"
+                            >
+                                Close
                             </button>
                         </div>
                     </div>

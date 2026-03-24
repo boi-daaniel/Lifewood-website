@@ -45,6 +45,7 @@ export default async function handler(req: { method?: string; headers?: any; bod
         .from('admin_profiles')
         .select('role')
         .eq('id', userData.user.id)
+        .eq('record_status', 'Active')
         .maybeSingle();
 
     if (profileError || profile?.role !== 'Super Admin') {
@@ -82,7 +83,8 @@ export default async function handler(req: { method?: string; headers?: any; bod
             role,
             phone: body.phone?.toString().trim() || null,
             department: body.department?.toString().trim() || null,
-            location: body.location?.toString().trim() || null
+            location: body.location?.toString().trim() || null,
+            record_status: 'Active'
         })
         .select('id, username, role, phone, department, location, avatar_url')
         .single();
