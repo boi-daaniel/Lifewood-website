@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import emailjs from '@emailjs/browser';
-import { supabase } from '../lib/supabaseClient';
+import { submitContactMessage } from '../lib/contactMessages';
 import DarkVeil from '../components/DarkVeil';
 
 export const ContactUs: React.FC = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
+    const [website, setWebsite] = useState('');
+    const [formStartedAt, setFormStartedAt] = useState(() => Date.now());
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -16,11 +18,6 @@ export const ContactUs: React.FC = () => {
 
         if (!name.trim() || !email.trim() || !message.trim()) {
             setStatus({ type: 'error', message: 'Please fill out all fields before sending.' });
-            return;
-        }
-
-        if (!supabase) {
-            setStatus({ type: 'error', message: 'Supabase is not configured yet.' });
             return;
         }
 
@@ -36,15 +33,33 @@ export const ContactUs: React.FC = () => {
 
         setIsSubmitting(true);
         try {
-            const { error: insertError } = await supabase.from('contact_messages').insert({
-                name,
-                email,
-                message,
-                record_status: 'Active'
-            });
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+            const normalizedEmail = email.trim().toLowerCase();
 
-            if (insertError) {
-                throw insertError;
+            try {
+                const submission = await submitContactMessage(
+                    {
+                        name,
+                        email: normalizedEmail,
+                        message,
+                        website,
+                        formStartedAt
+                    },
+                    controller.signal
+                );
+
+                if (submission.filtered) {
+                    setStatus({ type: 'success', message: 'Thanks for contacting us. We will get back to you as soon as possible.' });
+                    setName('');
+                    setEmail('');
+                    setMessage('');
+                    setWebsite('');
+                    setFormStartedAt(Date.now());
+                    return;
+                }
+            } finally {
+                window.clearTimeout(timeoutId);
             }
 
             await emailjs.send(
@@ -56,7 +71,7 @@ export const ContactUs: React.FC = () => {
                     subject: `New contact message from ${name}`,
                     message,
                     from_name: name,
-                    from_email: email,
+                    from_email: normalizedEmail,
                     email_type: 'contact_admin'
                 },
                 publicKey
@@ -66,7 +81,7 @@ export const ContactUs: React.FC = () => {
                 serviceId,
                 templateId,
                 {
-                    to_email: email,
+                    to_email: normalizedEmail,
                     to_name: name,
                     subject: 'Thanks for contacting Lifewood',
                     message: 'Thanks for contacting us. We will get back to you as soon as possible.',
@@ -80,10 +95,17 @@ export const ContactUs: React.FC = () => {
             setName('');
             setEmail('');
             setMessage('');
+            setWebsite('');
+            setFormStartedAt(Date.now());
         } catch (error) {
             setStatus({
                 type: 'error',
-                message: error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+                message:
+                    error instanceof DOMException && error.name === 'AbortError'
+                        ? 'Request timed out. Please try again.'
+                        : error instanceof Error
+                          ? error.message
+                          : 'Something went wrong. Please try again.'
             });
         } finally {
             setIsSubmitting(false);
@@ -162,6 +184,18 @@ export const ContactUs: React.FC = () => {
                                         onChange={(event) => setMessage(event.target.value)}
                                         required
                                         className="w-full h-full min-h-[100px] rounded-lg bg-black/20 text-white placeholder:text-white/45 px-4 py-3 outline-none border border-white/5 focus:border-white/20 resize-none"
+                                    />
+                                </div>
+
+                                <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden opacity-0">
+                                    <label htmlFor="contact-website">Website</label>
+                                    <input
+                                        id="contact-website"
+                                        type="text"
+                                        tabIndex={-1}
+                                        autoComplete="off"
+                                        value={website}
+                                        onChange={(event) => setWebsite(event.target.value)}
                                     />
                                 </div>
                             </div>

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import './Careers.css';
 import './ElegantTextEffects.css';
+import { submitContactMessage } from '../lib/contactMessages';
 import { supabase } from '../lib/supabaseClient';
 import DarkVeil from '../components/DarkVeil';
 
@@ -88,6 +89,8 @@ export const Careers: React.FC = () => {
         email: '',
         message: ''
     });
+    const [contactWebsite, setContactWebsite] = useState('');
+    const [contactFormStartedAt, setContactFormStartedAt] = useState(() => Date.now());
 
     const [isSubmittingApplication, setIsSubmittingApplication] = useState(false);
     const [isSubmittingMessage, setIsSubmittingMessage] = useState(false);
@@ -274,11 +277,6 @@ export const Careers: React.FC = () => {
             return;
         }
 
-        if (!supabase) {
-            setMessageStatus({ type: 'error', message: 'Supabase is not configured yet.' });
-            return;
-        }
-
         const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined;
         const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined;
         const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined;
@@ -291,14 +289,39 @@ export const Careers: React.FC = () => {
 
         setIsSubmittingMessage(true);
         try {
-            const { error: insertError } = await supabase.from('contact_messages').insert({
-                name: contactForm.name,
-                email: contactForm.email,
-                message: contactForm.message,
-                record_status: 'Active'
-            });
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+            const normalizedEmail = contactForm.email.trim().toLowerCase();
 
-            if (insertError) throw insertError;
+            try {
+                const submission = await submitContactMessage(
+                    {
+                        name: contactForm.name,
+                        email: normalizedEmail,
+                        message: contactForm.message,
+                        website: contactWebsite,
+                        formStartedAt: contactFormStartedAt
+                    },
+                    controller.signal
+                );
+
+                if (submission.filtered) {
+                    setMessageStatus({
+                        type: 'success',
+                        message: 'Thanks for contacting us. We will get back to you as soon as possible.'
+                    });
+                    setContactForm({
+                        name: '',
+                        email: '',
+                        message: ''
+                    });
+                    setContactWebsite('');
+                    setContactFormStartedAt(Date.now());
+                    return;
+                }
+            } finally {
+                window.clearTimeout(timeoutId);
+            }
 
             await emailjs.send(
                 serviceId,
@@ -309,7 +332,7 @@ export const Careers: React.FC = () => {
                     subject: `New contact message from ${contactForm.name}`,
                     message: contactForm.message,
                     from_name: contactForm.name,
-                    from_email: contactForm.email,
+                    from_email: normalizedEmail,
                     email_type: 'contact_admin'
                 },
                 publicKey
@@ -319,7 +342,7 @@ export const Careers: React.FC = () => {
                 serviceId,
                 templateId,
                 {
-                    to_email: contactForm.email,
+                    to_email: normalizedEmail,
                     to_name: contactForm.name,
                     subject: 'Thanks for contacting Lifewood',
                     message: 'Thanks for contacting us. We will get back to you as soon as possible.',
@@ -339,10 +362,17 @@ export const Careers: React.FC = () => {
                 email: '',
                 message: ''
             });
+            setContactWebsite('');
+            setContactFormStartedAt(Date.now());
         } catch (error) {
             setMessageStatus({
                 type: 'error',
-                message: error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+                message:
+                    error instanceof DOMException && error.name === 'AbortError'
+                        ? 'Request timed out. Please try again.'
+                        : error instanceof Error
+                          ? error.message
+                          : 'Something went wrong. Please try again.'
             });
         } finally {
             setIsSubmittingMessage(false);
@@ -619,6 +649,17 @@ export const Careers: React.FC = () => {
                                                 maxLength={1000}
                                                 placeholder="Message here..."
                                                 className="mt-2 min-h-[190px] w-full rounded-lg border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-white/45 focus:border-white/30 resize-none"
+                                            />
+                                        </div>
+                                        <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden opacity-0">
+                                            <label htmlFor="careers-contact-website">Website</label>
+                                            <input
+                                                id="careers-contact-website"
+                                                type="text"
+                                                tabIndex={-1}
+                                                autoComplete="off"
+                                                value={contactWebsite}
+                                                onChange={(event) => setContactWebsite(event.target.value)}
                                             />
                                         </div>
                                     </div>

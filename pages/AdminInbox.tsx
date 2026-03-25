@@ -27,6 +27,8 @@ export const AdminInbox: React.FC = () => {
     const [isSending, setIsSending] = useState(false);
     const [sendStatus, setSendStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+    const [batchAction, setBatchAction] = useState<'read' | 'unread' | 'delete' | null>(null);
     const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
@@ -97,6 +99,22 @@ export const AdminInbox: React.FC = () => {
         await handleSetReadState(message, !message.is_read);
     };
 
+    const toggleMessageSelection = (id: string) => {
+        setSelectedMessageIds((prev) =>
+            prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+        );
+    };
+
+    const toggleSelectCurrentPage = () => {
+        setSelectedMessageIds((prev) => {
+            if (allPageSelected) {
+                return prev.filter((id) => !pageMessageIds.includes(id));
+            }
+
+            return Array.from(new Set([...prev, ...pageMessageIds]));
+        });
+    };
+
     const filteredMessages = messages.filter((item) => {
         if (filterStatus === 'unread' && item.is_read) return false;
         if (filterStatus === 'read' && !item.is_read) return false;
@@ -124,12 +142,21 @@ export const AdminInbox: React.FC = () => {
         setCurrentPage(1);
     }, [searchTerm, filterStatus, sortOrder]);
 
+    useEffect(() => {
+        setSelectedMessageIds((prev) => prev.filter((id) => messages.some((item) => item.id === id)));
+    }, [messages]);
+
     const unreadCount = messages.filter((item) => !item.is_read).length;
     const pageSize = 10;
     const totalPages = Math.max(1, Math.ceil(sortedMessages.length / pageSize));
     const safePage = Math.min(currentPage, totalPages);
     const pagedMessages = sortedMessages.slice((safePage - 1) * pageSize, safePage * pageSize);
     const selectedMessage = messages.find((item) => item.id === selectedMessageId) ?? null;
+    const selectedCount = selectedMessageIds.length;
+    const selectedIdSet = new Set(selectedMessageIds);
+    const pageMessageIds = pagedMessages.map((item) => item.id);
+    const allPageSelected = pageMessageIds.length > 0 && pageMessageIds.every((id) => selectedIdSet.has(id));
+    const somePageSelected = pageMessageIds.some((id) => selectedIdSet.has(id));
 
     const openReply = (item: ContactMessage) => {
         setComposeTo(item.email);
@@ -195,29 +222,76 @@ export const AdminInbox: React.FC = () => {
         }
     };
 
-    const handleDelete = async (message: ContactMessage) => {
-        if (!supabase) return;
-        const confirmed = window.confirm(`Mark message from ${message.name} as deleted? It will remain in the database.`);
+    const handleBatchSetReadState = async (ids: string[], nextValue: boolean) => {
+        if (!supabase || ids.length === 0) return;
+
+        const previousReadState = new Map(
+            messages.filter((item) => ids.includes(item.id)).map((item) => [item.id, item.is_read])
+        );
+
+        setBatchAction(nextValue ? 'read' : 'unread');
+        setError(null);
+        setMessages((prev) =>
+            prev.map((item) => (ids.includes(item.id) ? { ...item, is_read: nextValue } : item))
+        );
+
+        const { error: updateError } = await supabase
+            .from('contact_messages')
+            .update({ is_read: nextValue })
+            .in('id', ids);
+
+        if (updateError) {
+            setMessages((prev) =>
+                prev.map((item) =>
+                    previousReadState.has(item.id)
+                        ? { ...item, is_read: previousReadState.get(item.id) ?? item.is_read }
+                        : item
+                )
+            );
+            setError(updateError.message);
+        } else {
+            setSelectedMessageIds([]);
+        }
+
+        setBatchAction(null);
+    };
+
+    const handleBatchDelete = async (ids: string[]) => {
+        if (!supabase || ids.length === 0) return;
+
+        const confirmed = window.confirm(
+            `Mark ${ids.length} selected ${ids.length === 1 ? 'message' : 'messages'} as deleted? They will remain in the database.`
+        );
         if (!confirmed) return;
 
-        setDeletingId(message.id);
+        setBatchAction('delete');
         setError(null);
         const { error: updateError } = await supabase
             .from('contact_messages')
             .update({ record_status: 'Deleted' })
-            .eq('id', message.id);
+            .in('id', ids);
 
         if (updateError) {
             setError(updateError.message);
-            setDeletingId(null);
+            setBatchAction(null);
             return;
         }
 
-        setMessages((prev) => prev.filter((item) => item.id !== message.id));
-        if (selectedMessageId === message.id) {
+        setMessages((prev) => prev.filter((item) => !ids.includes(item.id)));
+        setSelectedMessageIds((prev) => prev.filter((id) => !ids.includes(id)));
+        if (selectedMessageId && ids.includes(selectedMessageId)) {
             setSelectedMessageId(null);
         }
-        setDeletingId(null);
+        setBatchAction(null);
+    };
+
+    const handleDelete = async (message: ContactMessage) => {
+        setDeletingId(message.id);
+        try {
+            await handleBatchDelete([message.id]);
+        } finally {
+            setDeletingId(null);
+        }
     };
 
     const toggleMenu = (id: string) => {
@@ -271,6 +345,59 @@ export const AdminInbox: React.FC = () => {
                         <p className="text-xs text-black/50">Direct from the contact form.</p>
                     </div>
 
+                    {!isLoading && !error && sortedMessages.length > 0 && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 px-6 py-4">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <label className="flex items-center gap-3 text-sm font-medium text-black/70">
+                                    <input
+                                        type="checkbox"
+                                        checked={allPageSelected}
+                                        ref={(input) => {
+                                            if (input) {
+                                                input.indeterminate = !allPageSelected && somePageSelected;
+                                            }
+                                        }}
+                                        onChange={toggleSelectCurrentPage}
+                                        className="h-4 w-4 rounded border border-black/20 text-[#0a2f22] focus:ring-[#0a2f22]"
+                                    />
+                                    Select this page
+                                </label>
+                                <span className="text-xs text-black/50">
+                                    {selectedCount > 0
+                                        ? `${selectedCount} selected`
+                                        : `${sortedMessages.length} total messages`}
+                                </span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleBatchSetReadState(selectedMessageIds, true)}
+                                    disabled={selectedCount === 0 || batchAction !== null}
+                                    className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/70 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {batchAction === 'read' ? 'Marking Read...' : 'Mark Read'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleBatchSetReadState(selectedMessageIds, false)}
+                                    disabled={selectedCount === 0 || batchAction !== null}
+                                    className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/70 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {batchAction === 'unread' ? 'Marking Unread...' : 'Mark Unread'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleBatchDelete(selectedMessageIds)}
+                                    disabled={selectedCount === 0 || batchAction !== null}
+                                    className="rounded-full border border-red-200 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {batchAction === 'delete' ? 'Deleting...' : 'Delete'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {isLoading && (
                         <div className="px-6 py-6 text-sm text-black/60">Loading messages...</div>
                     )}
@@ -290,27 +417,36 @@ export const AdminInbox: React.FC = () => {
                             {pagedMessages.map((item) => (
                                 <div key={item.id} className="px-6 py-5">
                                     <div className="flex flex-wrap items-start justify-between gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleOpenMessage(item)}
-                                            className="min-w-0 flex-1 text-left"
-                                        >
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <span
-                                                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                                                        item.is_read
-                                                            ? 'bg-black/5 text-black/50'
-                                                            : 'bg-[#c9ff3c] text-black'
-                                                    }`}
-                                                >
-                                                    {item.is_read ? 'Read' : 'Unread'}
-                                                </span>
-                                                <p className="text-base font-semibold">{item.name}</p>
-                                            </div>
-                                            <p className="text-sm text-black/60">
-                                                {item.email}
-                                            </p>
-                                        </button>
+                                        <div className="flex min-w-0 flex-1 items-start gap-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIdSet.has(item.id)}
+                                                onChange={() => toggleMessageSelection(item.id)}
+                                                className="mt-1 h-4 w-4 rounded border border-black/20 text-[#0a2f22] focus:ring-[#0a2f22]"
+                                                aria-label={`Select message from ${item.name}`}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenMessage(item)}
+                                                className="min-w-0 flex-1 text-left"
+                                            >
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span
+                                                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                                            item.is_read
+                                                                ? 'bg-black/5 text-black/50'
+                                                                : 'bg-[#c9ff3c] text-black'
+                                                        }`}
+                                                    >
+                                                        {item.is_read ? 'Read' : 'Unread'}
+                                                    </span>
+                                                    <p className="text-base font-semibold">{item.name}</p>
+                                                </div>
+                                                <p className="text-sm text-black/60">
+                                                    {item.email}
+                                                </p>
+                                            </button>
+                                        </div>
                                         <div className="flex items-center gap-2 text-xs text-black/50">
                                             <span>{formatDate(item.created_at)}</span>
                                             <div className="relative">
@@ -368,7 +504,7 @@ export const AdminInbox: React.FC = () => {
                                                                 handleDelete(item);
                                                                 setMenuOpenId(null);
                                                             }}
-                                                            disabled={deletingId === item.id}
+                                                            disabled={deletingId === item.id || batchAction !== null}
                                                             className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                                                             role="menuitem"
                                                         >
