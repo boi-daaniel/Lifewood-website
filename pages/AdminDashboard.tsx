@@ -146,8 +146,8 @@ export const AdminDashboard: React.FC = () => {
                             A cleaner control room for inbox activity, applicant flow, and the next actions your team should take today.
                         </p>
                     </div>
-                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[280px]">
-                        <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold text-black/70 shadow-sm">
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-0 sm:items-end">
+                        <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold text-black/70 shadow-sm">
                             <span className="h-2 w-2 rounded-full bg-[#c9ff3c]" />
                             <span className="truncate">{currentDateTime}</span>
                         </div>

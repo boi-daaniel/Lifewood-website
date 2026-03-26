@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { MoreHorizontal } from 'lucide-react';
 import { AdminLayout } from '../components/AdminLayout';
 import { supabase } from '../lib/supabaseClient';
 import { COUNTRY_OPTIONS, getCountryLabel, normalizeCountryValue } from '../lib/countries';
@@ -12,6 +13,13 @@ type AdminUser = {
     location: string | null;
     avatar_url: string | null;
 };
+
+const adminMenuButtonClass =
+    'relative flex h-9 w-9 items-center justify-center rounded-full border border-black/10 bg-white text-transparent transition hover:border-black/20 hover:bg-black/[0.03]';
+const adminMenuPanelClass =
+    'absolute right-0 top-11 z-10 w-48 rounded-2xl border border-black/10 bg-white p-2 shadow-[0_20px_40px_rgba(15,23,42,0.16)]';
+const adminMenuItemClass =
+    'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-black/72 transition hover:bg-black/[0.04] hover:text-black';
 
 export const AdminManagement: React.FC = () => {
     const [admins, setAdmins] = useState<AdminUser[]>([]);
@@ -280,7 +288,7 @@ export const AdminManagement: React.FC = () => {
 
     return (
         <AdminLayout>
-            <div className="rounded-[30px] border border-white/10 bg-white/90 px-7 py-6 text-black shadow-[0_25px_60px_rgba(0,0,0,0.35)] backdrop-blur">
+            <div className="flex h-[calc(100vh-4rem)] min-h-[720px] flex-col overflow-hidden rounded-[30px] border border-white/10 bg-white/90 px-7 py-6 text-black shadow-[0_25px_60px_rgba(0,0,0,0.35)] backdrop-blur">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <p className="text-xs uppercase tracking-[0.35em] text-black/50">Admin Management</p>
@@ -319,28 +327,32 @@ export const AdminManagement: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="mt-6 rounded-3xl border border-black/10 bg-white shadow-[0_20px_40px_rgba(0,0,0,0.12)]">
+                <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-black/10 bg-white shadow-[0_20px_40px_rgba(0,0,0,0.12)]">
                     <div className="border-b border-black/10 px-6 py-4">
                         <p className="text-sm font-semibold">All admins</p>
                         <p className="text-xs text-black/50">Visible only to Super Admins.</p>
                     </div>
 
                     {isLoading && (
-                        <div className="px-6 py-6 text-sm text-black/60">Loading admins...</div>
+                        <div className="flex flex-1 items-center px-6 py-6 text-sm text-black/60">Loading admins...</div>
                     )}
 
                     {!isLoading && error && (
-                        <div className="px-6 py-6 text-sm text-red-600">{error}</div>
+                        <div className="flex flex-1 items-center px-6 py-6 text-sm text-red-600">{error}</div>
                     )}
 
                     {!isLoading && !error && filteredAdmins.length === 0 && (
-                        <div className="px-6 py-10 text-sm text-black/60">No admins found.</div>
+                        <div className="flex flex-1 items-center px-6 py-10 text-sm text-black/60">No admins found.</div>
                     )}
 
                     {!isLoading && !error && filteredAdmins.length > 0 && (
-                        <div className="divide-y divide-black/10">
+                        <div className="flex-1 overflow-y-auto divide-y divide-black/10">
                             {filteredAdmins.map((admin) => (
-                                <div key={admin.id} className="px-6 py-5">
+                                <div
+                                    key={admin.id}
+                                    className="cursor-pointer px-6 py-5 transition hover:bg-black/[0.02]"
+                                    onClick={() => setViewAdmin(admin)}
+                                >
                                     <div className="flex flex-wrap items-center gap-4">
                                         <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#c9ff3c] text-black font-semibold">
                                             {admin.avatar_url ? (
@@ -363,33 +375,30 @@ export const AdminManagement: React.FC = () => {
                                                     event.stopPropagation();
                                                     setMenuOpenId((prev) => (prev === admin.id ? null : admin.id));
                                                 }}
-                                                className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-lg text-black/60 hover:border-black/20 hover:text-black"
+                                                className={adminMenuButtonClass}
                                                 aria-label="Open admin actions"
+                                                aria-haspopup="menu"
+                                                aria-expanded={menuOpenId === admin.id}
                                             >
+                                                <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-black/55">
+                                                    <MoreHorizontal size={16} />
+                                                </span>
                                                 ⋯
                                             </button>
                                             {menuOpenId === admin.id && (
                                                 <div
-                                                    className="absolute right-0 mt-2 w-44 rounded-2xl border border-black/10 bg-white p-2 text-xs shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
+                                                    className={adminMenuPanelClass}
                                                     onClick={(event) => event.stopPropagation()}
+                                                    role="menu"
                                                 >
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setMenuOpenId(null);
-                                                            setViewAdmin(admin);
-                                                        }}
-                                                        className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-black/80 hover:bg-black/5"
-                                                    >
-                                                        View
-                                                    </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => {
                                                             setMenuOpenId(null);
                                                             handleOpenEdit(admin);
                                                         }}
-                                                        className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-black/80 hover:bg-black/5"
+                                                        className={adminMenuItemClass}
+                                                        role="menuitem"
                                                     >
                                                         Edit
                                                     </button>
@@ -400,7 +409,8 @@ export const AdminManagement: React.FC = () => {
                                                             handleDelete(admin);
                                                         }}
                                                         disabled={deletingId === admin.id || admin.id === currentUserId}
-                                                        className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                                        className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                                        role="menuitem"
                                                     >
                                                         {deletingId === admin.id ? 'Deleting...' : 'Delete'}
                                                     </button>

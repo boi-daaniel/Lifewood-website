@@ -5,6 +5,77 @@ import { ArrowLeft, ArrowRight, Ban, Eye, EyeOff, Sparkles } from 'lucide-react'
 import DarkVeil from '../components/DarkVeil';
 import { supabase } from '../lib/supabaseClient';
 
+const LOGIN_SECURITY_KEY = 'lifewood_admin_login_security';
+const RESET_SECURITY_KEY = 'lifewood_admin_reset_security';
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_MS = 5 * 60 * 1000;
+const RESET_COOLDOWN_MS = 60 * 1000;
+const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{10,}$/;
+
+type LoginSecurityState = {
+    failedAttempts: number;
+    lockoutUntil: number | null;
+};
+
+const getStoredLoginSecurity = (): LoginSecurityState => {
+    if (typeof window === 'undefined') {
+        return { failedAttempts: 0, lockoutUntil: null };
+    }
+
+    try {
+        const raw = window.localStorage.getItem(LOGIN_SECURITY_KEY);
+        if (!raw) {
+            return { failedAttempts: 0, lockoutUntil: null };
+        }
+
+        const parsed = JSON.parse(raw) as Partial<LoginSecurityState>;
+        const lockoutUntil =
+            typeof parsed.lockoutUntil === 'number' && parsed.lockoutUntil > Date.now()
+                ? parsed.lockoutUntil
+                : null;
+
+        return {
+            failedAttempts: typeof parsed.failedAttempts === 'number' ? parsed.failedAttempts : 0,
+            lockoutUntil
+        };
+    } catch {
+        return { failedAttempts: 0, lockoutUntil: null };
+    }
+};
+
+const setStoredLoginSecurity = (value: LoginSecurityState) => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(LOGIN_SECURITY_KEY, JSON.stringify(value));
+};
+
+const clearStoredLoginSecurity = () => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(LOGIN_SECURITY_KEY);
+};
+
+const getStoredResetCooldown = () => {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    try {
+        const raw = window.localStorage.getItem(RESET_SECURITY_KEY);
+        const parsed = raw ? Number(raw) : null;
+        return parsed && parsed > Date.now() ? parsed : null;
+    } catch {
+        return null;
+    }
+};
+
+const setStoredResetCooldown = (value: number | null) => {
+    if (typeof window === 'undefined') return;
+    if (value && value > Date.now()) {
+        window.localStorage.setItem(RESET_SECURITY_KEY, String(value));
+    } else {
+        window.localStorage.removeItem(RESET_SECURITY_KEY);
+    }
+};
+
 export const Login: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -22,6 +93,8 @@ export const Login: React.FC = () => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+    const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+    const [resetCooldownUntil, setResetCooldownUntil] = useState<number | null>(null);
 
     useEffect(() => {
         if (!supabase) return;
@@ -71,11 +144,46 @@ export const Login: React.FC = () => {
         };
     }, []);
 
+    useEffect(() => {
+        const loginSecurity = getStoredLoginSecurity();
+        const resetCooldown = getStoredResetCooldown();
+        setLockoutUntil(loginSecurity.lockoutUntil);
+        setResetCooldownUntil(resetCooldown);
+
+        if (!loginSecurity.lockoutUntil && loginSecurity.failedAttempts === 0) {
+            clearStoredLoginSecurity();
+        }
+        if (!resetCooldown) {
+            setStoredResetCooldown(null);
+        }
+    }, []);
+
     const normalizeEmail = (value: string) => {
-        const trimmed = value.trim();
+        const trimmed = value.trim().toLowerCase();
         if (trimmed.includes('@')) return trimmed;
         const adminDomain = (import.meta.env.VITE_ADMIN_EMAIL_DOMAIN as string | undefined) ?? 'lifewood.local';
         return `${trimmed}@${adminDomain}`;
+    };
+
+    const registerFailedLoginAttempt = () => {
+        const current = getStoredLoginSecurity();
+        const nextFailedAttempts = current.failedAttempts + 1;
+        const nextLockoutUntil =
+            nextFailedAttempts >= MAX_LOGIN_ATTEMPTS ? Date.now() + LOGIN_LOCKOUT_MS : null;
+
+        const nextState = {
+            failedAttempts: nextLockoutUntil ? 0 : nextFailedAttempts,
+            lockoutUntil: nextLockoutUntil
+        };
+
+        setStoredLoginSecurity(nextState);
+        setLockoutUntil(nextState.lockoutUntil);
+        return nextState.lockoutUntil;
+    };
+
+    const clearLoginSecurity = () => {
+        clearStoredLoginSecurity();
+        setLockoutUntil(null);
     };
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -96,6 +204,11 @@ export const Login: React.FC = () => {
             return;
         }
 
+        if (lockoutUntil && lockoutUntil > Date.now()) {
+            setErrorMessage('Too many sign-in attempts. Please wait a few minutes before trying again.');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const email = normalizeEmail(identifier);
@@ -105,10 +218,16 @@ export const Login: React.FC = () => {
             });
 
             if (error) {
-                setErrorMessage(error.message);
+                const nextLockoutUntil = registerFailedLoginAttempt();
+                setErrorMessage(
+                    nextLockoutUntil
+                        ? 'Too many sign-in attempts. Please wait a few minutes before trying again.'
+                        : 'Invalid credentials or unauthorized access.'
+                );
             } else {
                 const userId = data.user?.id;
                 if (!userId) {
+                    registerFailedLoginAttempt();
                     setErrorMessage('Unable to verify admin session.');
                     return;
                 }
@@ -122,19 +241,25 @@ export const Login: React.FC = () => {
 
                 if (adminError || !adminProfile) {
                     await supabase.auth.signOut();
-                    const debugMessage = adminError?.message
-                        ? ` Admin profile lookup failed: ${adminError.message}`
-                        : ' Admin profile lookup returned no rows.';
-                    console.warn('Admin login debug', { adminError, adminProfile, userId });
-                    setErrorMessage(`This account is not granted admin access yet.${debugMessage}`);
+                    registerFailedLoginAttempt();
+                    console.warn('Admin login denied', { adminError, adminProfile, userId });
+                    setErrorMessage('Invalid credentials or unauthorized access.');
                     return;
                 }
 
+                clearLoginSecurity();
                 setSuccessMessage('Signed in successfully.');
                 navigate(from, { replace: true });
             }
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : 'Failed to sign in.');
+            const nextLockoutUntil = registerFailedLoginAttempt();
+            setErrorMessage(
+                nextLockoutUntil
+                    ? 'Too many sign-in attempts. Please wait a few minutes before trying again.'
+                    : error instanceof Error
+                      ? error.message
+                      : 'Failed to sign in.'
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -163,6 +288,14 @@ export const Login: React.FC = () => {
             return;
         }
 
+        if (resetCooldownUntil && resetCooldownUntil > Date.now()) {
+            setResetStatus({
+                type: 'error',
+                message: 'Please wait a moment before requesting another reset link.'
+            });
+            return;
+        }
+
         setIsResetting(true);
         try {
             const email = normalizeEmail(resetEmail);
@@ -175,9 +308,12 @@ export const Login: React.FC = () => {
             if (error) {
                 setResetStatus({ type: 'error', message: error.message });
             } else {
+                const nextCooldown = Date.now() + RESET_COOLDOWN_MS;
+                setStoredResetCooldown(nextCooldown);
+                setResetCooldownUntil(nextCooldown);
                 setResetStatus({
                     type: 'success',
-                    message: 'Password reset email sent. Please check your inbox.'
+                    message: 'If an account exists, a reset email has been sent. Please check your inbox.'
                 });
             }
         } catch (error) {
@@ -201,8 +337,11 @@ export const Login: React.FC = () => {
             return;
         }
 
-        if (newPassword.length < 8) {
-            setResetStatus({ type: 'error', message: 'Password must be at least 8 characters.' });
+        if (!STRONG_PASSWORD_REGEX.test(newPassword)) {
+            setResetStatus({
+                type: 'error',
+                message: 'Password must be at least 10 characters and include uppercase, lowercase, number, and symbol.'
+            });
             return;
         }
 
@@ -347,6 +486,12 @@ export const Login: React.FC = () => {
                                         </div>
                                     )}
 
+                                    {lockoutUntil && lockoutUntil > Date.now() && (
+                                        <div className="rounded-xl border border-amber-300/40 bg-amber-200/10 px-3 py-2 text-xs text-amber-100">
+                                            Sign-in is temporarily locked after repeated failed attempts. Please wait a few minutes before retrying.
+                                        </div>
+                                    )}
+
                                     {!supabase && !errorMessage && (
                                         <div className="rounded-xl border border-amber-300/40 bg-amber-200/10 px-3 py-2 text-xs text-amber-100">
                                             Supabase is not configured yet. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` then refresh.
@@ -355,10 +500,10 @@ export const Login: React.FC = () => {
 
                                     <button
                                         type="submit"
-                                        disabled={isSubmitting}
+                                        disabled={isSubmitting || Boolean(lockoutUntil && lockoutUntil > Date.now())}
                                         className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#133020] text-sm font-semibold text-white transition-colors enabled:hover:bg-[#19422b] disabled:cursor-not-allowed disabled:opacity-70"
                                     >
-                                        {isSubmitting ? 'Signing In...' : 'Sign In'}
+                                        {isSubmitting ? 'Signing In...' : lockoutUntil && lockoutUntil > Date.now() ? 'Temporarily Locked' : 'Sign In'}
                                         {isSubmitting && <Ban size={15} className="text-red-600" />}
                                     </button>
                                 </form>
@@ -413,10 +558,14 @@ export const Login: React.FC = () => {
                                             <button
                                                 type="button"
                                                 onClick={handleForgotPassword}
-                                                disabled={isResetting}
+                                                disabled={isResetting || Boolean(resetCooldownUntil && resetCooldownUntil > Date.now())}
                                                 className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#133020] text-sm font-semibold text-white transition-colors enabled:hover:bg-[#19422b] disabled:cursor-not-allowed disabled:opacity-70"
                                             >
-                                                {isResetting ? 'Sending...' : 'Send Reset Link'}
+                                                {isResetting
+                                                    ? 'Sending...'
+                                                    : resetCooldownUntil && resetCooldownUntil > Date.now()
+                                                      ? 'Wait Before Retrying'
+                                                      : 'Send Reset Link'}
                                             </button>
                                         </>
                                     ) : (
@@ -430,8 +579,11 @@ export const Login: React.FC = () => {
                                                     value={newPassword}
                                                     onChange={(event) => setNewPassword(event.target.value)}
                                                     className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none transition focus:border-white/30"
-                                                    placeholder="At least 8 characters"
+                                                    placeholder="At least 10 characters"
                                                 />
+                                                <p className="mt-2 text-[11px] text-white/70">
+                                                    Use at least 10 characters with uppercase, lowercase, number, and symbol.
+                                                </p>
                                             </div>
                                             <div>
                                                 <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-white">

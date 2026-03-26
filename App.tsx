@@ -102,7 +102,7 @@ function HomePage() {
   );
 }
 
-function AnimatedRoutes() {
+function PublicAnimatedRoutes() {
   const location = useLocation();
 
   return (
@@ -124,18 +124,6 @@ function AnimatedRoutes() {
           <Route path="/careers" element={<Careers />} />
           <Route path="/contact-us" element={<Navigate to="/careers?view=message" replace />} />
           <Route path="/internal-news" element={<InternalNews />} />
-          <Route path="/admin/login" element={<Login />} />
-          <Route path="/admin/*" element={<RequireAdmin />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="inbox" element={<AdminInbox />} />
-            <Route path="applicants" element={<AdminApplicants />} />
-            <Route path="analytics" element={<AdminAnalytics />} />
-            <Route path="management" element={<RequireSuperAdmin />}>
-              <Route index element={<AdminManagement />} />
-            </Route>
-            <Route path="*" element={<Navigate to="dashboard" replace />} />
-          </Route>
           <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
           <Route path="/what-we-offer/type-a" element={<WhatWeOfferTypeA />} />
           <Route path="/what-we-offer/type-b" element={<WhatWeOfferTypeB />} />
@@ -144,6 +132,25 @@ function AnimatedRoutes() {
         </Routes>
       </motion.div>
     </AnimatePresence>
+  );
+}
+
+function AdminRoutes() {
+  return (
+    <Routes>
+      <Route path="/admin/login" element={<Login />} />
+      <Route path="/admin/*" element={<RequireAdmin />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="inbox" element={<AdminInbox />} />
+        <Route path="applicants" element={<AdminApplicants />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="management" element={<RequireSuperAdmin />}>
+          <Route index element={<AdminManagement />} />
+        </Route>
+        <Route path="*" element={<Navigate to="dashboard" replace />} />
+      </Route>
+    </Routes>
   );
 }
 
@@ -171,7 +178,7 @@ function AppShell() {
   return (
     <div className="min-h-screen font-sans text-gray-900 dark:text-white selection:bg-brand-gold selection:text-white transition-colors duration-300">
       {!isAdminRoute && <Navbar />}
-      <AnimatedRoutes />
+      {isAdminRoute ? <AdminRoutes /> : <PublicAnimatedRoutes />}
       {!isAdminRoute && <Footer />}
       {!isAdminRoute && (
         <GradualBlur

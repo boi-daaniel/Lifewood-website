@@ -254,16 +254,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(`${path}/`);
 
     const navLinkClass = (collapsed: boolean, active: boolean) =>
-        `flex items-center rounded-2xl text-sm transition ${
-            collapsed ? 'justify-center px-3 py-3.5' : 'gap-3 px-4 py-3'
+        `group flex items-center rounded-2xl text-sm font-medium transition-colors duration-200 ${
+            collapsed ? 'mx-auto h-11 w-11 justify-center' : 'gap-3 px-3.5 py-3'
         } ${
             active
-                ? 'bg-[#0f1720] text-[#c9ff3c] shadow-[0_0_0_1px_rgba(201,255,60,0.2)]'
-                : 'text-white/75 hover:bg-white/5 hover:text-white'
+                ? 'bg-white/[0.1] text-white'
+                : 'text-white/62 hover:bg-white/[0.06] hover:text-white'
         }`;
 
     const renderNavLinks = (collapsed: boolean) => (
-        <nav className="mt-4 flex flex-col gap-2">
+        <nav className="mt-4 flex flex-col gap-1.5">
             {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.to);
@@ -273,7 +273,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                         <div
                             key={item.label}
                             className={`flex cursor-not-allowed items-center rounded-2xl text-sm text-white/30 ${
-                                collapsed ? 'justify-center px-3 py-3.5' : 'gap-3 px-4 py-3'
+                                collapsed ? 'mx-auto h-11 w-11 justify-center' : 'gap-3 px-3.5 py-3'
                             }`}
                             title={collapsed ? item.label : undefined}
                         >
@@ -303,7 +303,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
         return (
             <>
-                <div className={`mt-8 text-[11px] uppercase tracking-[0.2em] text-white/40 ${collapsed ? 'text-center' : ''}`}>
+                <div className={`mt-8 px-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/32 ${collapsed ? 'text-center' : ''}`}>
                     {collapsed ? 'Admin' : 'Administration'}
                 </div>
                 <Link
@@ -319,39 +319,40 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     };
 
     const renderProfileCard = (collapsed: boolean) => (
-        <div className={`mt-auto rounded-[26px] border border-white/10 bg-white/5 ${collapsed ? 'p-3' : 'p-4'}`}>
+        <div className={`mt-auto rounded-[22px] border border-white/8 bg-white/[0.03] ${collapsed ? 'p-2.5' : 'p-3.5'}`}>
             <div className={`flex ${collapsed ? 'flex-col items-center gap-3' : 'items-center gap-3'}`}>
-                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#b7f84f] text-sm font-semibold text-black">
-                    {profile.avatarUrl ? (
-                        <img
-                            src={profile.avatarUrl}
-                            alt={profile.name}
-                            className="h-full w-full object-cover"
-                        />
-                    ) : (
-                        initials
-                    )}
-                </div>
                 {collapsed ? (
-                    <>
-                        <button
-                            type="button"
-                            onClick={() => setProfileOpen(true)}
-                            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white transition hover:bg-white/5"
-                            aria-label="Open profile"
-                        >
-                            <Settings size={16} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleSignOut}
-                            disabled={isSigningOut}
-                            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white transition hover:bg-white/5 disabled:opacity-60"
-                            aria-label="Sign out"
-                        >
-                            <LogOut size={16} />
-                        </button>
-                    </>
+                    <button
+                        type="button"
+                        onClick={() => setProfileOpen(true)}
+                        className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-white/12 bg-white/95 text-sm font-semibold text-[#0f2f24] transition hover:scale-[1.03]"
+                        aria-label="Open profile"
+                    >
+                        {profile.avatarUrl ? (
+                            <img
+                                src={profile.avatarUrl}
+                                alt={profile.name}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            initials
+                        )}
+                    </button>
+                ) : (
+                    <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-white/12 bg-white/95 text-sm font-semibold text-[#0f2f24]">
+                        {profile.avatarUrl ? (
+                            <img
+                                src={profile.avatarUrl}
+                                alt={profile.name}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            initials
+                        )}
+                    </div>
+                )}
+                {collapsed ? (
+                    null
                 ) : (
                     <>
                         <button
@@ -360,13 +361,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                             className="flex-1 text-left"
                         >
                             <p className="text-sm font-semibold text-white">{profile.name}</p>
-                            <p className="text-xs text-white/70">{profile.role}</p>
+                            <p className="mt-0.5 text-xs text-white/50">{profile.role}</p>
                         </button>
                         <button
                             type="button"
                             onClick={handleSignOut}
                             disabled={isSigningOut}
-                            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white transition hover:bg-white/5 disabled:opacity-60"
+                            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/8 text-white/72 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-60"
                             aria-label="Sign out"
                         >
                             <LogOut size={16} />
@@ -374,18 +375,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     </>
                 )}
             </div>
-            {!collapsed && <p className="mt-3 text-[11px] text-white/70">{profile.email}</p>}
+            {!collapsed && <p className="mt-3 truncate text-[11px] text-white/44">{profile.email}</p>}
         </div>
     );
 
     return (
         <div className="min-h-screen bg-[#f6f8f6] text-[#0a0b0d]">
-            <header className="sticky top-0 z-[120] border-b border-black/10 bg-white/90 backdrop-blur lg:hidden">
+            <header className="sticky top-0 z-[120] border-b border-black/5 bg-white/85 backdrop-blur lg:hidden">
                 <div className="flex items-center justify-between px-4 py-3">
                     <button
                         type="button"
                         onClick={() => setMobileSidebarOpen(true)}
-                        className="flex h-10 w-10 items-center justify-center rounded-2xl border border-black/10 text-black"
+                        className="flex h-10 w-10 items-center justify-center rounded-2xl border border-black/8 bg-white text-black/80 shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
                         aria-label="Open navigation"
                     >
                         <Menu size={18} />
@@ -401,7 +402,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     <button
                         type="button"
                         onClick={() => setProfileOpen(true)}
-                        className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-black/10 bg-white text-sm font-semibold text-black"
+                        className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-black/8 bg-white text-sm font-semibold text-black shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
                         aria-label="Open profile"
                     >
                         {profile.avatarUrl ? (
@@ -418,23 +419,23 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             </header>
 
             <aside
-                className={`fixed inset-y-0 left-0 z-[140] hidden border-r border-white/10 bg-[#046241] text-white shadow-[24px_0_60px_rgba(0,0,0,0.18)] transition-all duration-300 lg:flex ${
+                className={`fixed inset-y-0 left-0 z-[140] hidden border-r border-[#ffffff14] bg-[#0a2f22] text-white transition-all duration-300 lg:flex ${
                     sidebarCollapsed ? 'w-[92px]' : 'w-[304px]'
                 }`}
             >
-                <div className={`flex h-full w-full flex-col ${sidebarCollapsed ? 'px-3 py-5' : 'px-5 py-6'}`}>
+                <div className={`flex h-full w-full flex-col ${sidebarCollapsed ? 'px-3 py-5' : 'px-4 py-5'}`}>
                     <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between gap-3'}`}>
                         {sidebarCollapsed ? (
                             <div className="group relative flex h-10 w-10 items-center justify-center">
                                 <img
                                     src="https://framerusercontent.com/images/Ca8ppNsvJIfTsWEuHr50gvkDow.png?scale-down-to=512&width=2624&height=474"
                                     alt="Lifewood"
-                                    className="h-5 w-auto object-contain transition-opacity duration-200 group-hover:opacity-0 group-focus-within:opacity-0"
+                                    className="h-5 w-auto object-contain opacity-88 transition-opacity duration-200 group-hover:opacity-0 group-focus-within:opacity-0"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setSidebarCollapsed(false)}
-                                    className="absolute inset-0 flex items-center justify-center rounded-2xl border border-white/10 bg-[#046241]/92 text-white opacity-0 transition-all duration-200 hover:bg-[#0b7c57] group-hover:opacity-100 group-focus-within:opacity-100"
+                                    className="absolute inset-0 flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-white opacity-0 transition-all duration-200 hover:bg-white/[0.1] group-hover:opacity-100 group-focus-within:opacity-100"
                                     aria-label="Expand sidebar"
                                 >
                                     <PanelLeftOpen size={18} />
@@ -451,7 +452,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                             <button
                                 type="button"
                                 onClick={() => setSidebarCollapsed(true)}
-                                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-white/80 transition hover:bg-white/5 hover:text-white"
+                                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/8 text-white/68 transition hover:bg-white/[0.06] hover:text-white"
                                 aria-label="Collapse sidebar"
                             >
                                 <PanelLeftClose size={18} />
@@ -459,7 +460,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                         )}
                     </div>
 
-                    <div className={`mt-8 text-[11px] uppercase tracking-[0.2em] text-white/40 ${sidebarCollapsed ? 'text-center' : ''}`}>
+                    <div className={`mt-8 px-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/28 ${sidebarCollapsed ? 'text-center' : ''}`}>
                         {sidebarCollapsed ? 'Menu' : 'Main Menu'}
                     </div>
                     {renderNavLinks(sidebarCollapsed)}
@@ -471,7 +472,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             {mobileSidebarOpen && (
                 <div className="fixed inset-0 z-[170] bg-black/45 lg:hidden" onClick={() => setMobileSidebarOpen(false)}>
                     <aside
-                        className="h-full w-[88vw] max-w-[320px] border-r border-white/10 bg-[#046241] px-5 py-6 text-white shadow-[24px_0_60px_rgba(0,0,0,0.3)]"
+                        className="h-full w-[88vw] max-w-[320px] border-r border-[#ffffff14] bg-[#0a2f22] px-4 py-5 text-white shadow-[24px_0_60px_rgba(0,0,0,0.3)]"
                         onClick={(event) => event.stopPropagation()}
                     >
                         <div className="flex items-center justify-between gap-3">
@@ -483,14 +484,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                             <button
                                 type="button"
                                 onClick={() => setMobileSidebarOpen(false)}
-                                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-white/80 transition hover:bg-white/5 hover:text-white"
+                                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/8 text-white/72 transition hover:bg-white/[0.06] hover:text-white"
                                 aria-label="Close navigation"
                             >
                                 <X size={18} />
                             </button>
                         </div>
 
-                        <div className="mt-8 text-[11px] uppercase tracking-[0.2em] text-white/40">Main Menu</div>
+                        <div className="mt-8 px-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/28">Main Menu</div>
                         {renderNavLinks(false)}
                         {renderManagementLink(false)}
                         {renderProfileCard(false)}

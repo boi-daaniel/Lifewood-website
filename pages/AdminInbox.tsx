@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import emailjs from '@emailjs/browser';
+import {
+    Download,
+    Inbox as InboxIcon,
+    Mail,
+    MailOpen,
+    RefreshCw,
+    Reply,
+    Search,
+    Trash2
+} from 'lucide-react';
 import { AdminLayout } from '../components/AdminLayout';
+import { exportRecords, type ExportFormat } from '../lib/exportData';
 import { supabase } from '../lib/supabaseClient';
 
 type ContactMessage = {
@@ -12,9 +23,13 @@ type ContactMessage = {
     is_read: boolean;
 };
 
+const previewMessage = (message: string) =>
+    message.replace(/\s+/g, ' ').trim().slice(0, 110) + (message.trim().length > 110 ? '...' : '');
+
 export const AdminInbox: React.FC = () => {
     const [messages, setMessages] = useState<ContactMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<'all' | 'unread' | 'read'>('all');
@@ -26,51 +41,57 @@ export const AdminInbox: React.FC = () => {
     const [composeBody, setComposeBody] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [sendStatus, setSendStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
     const [batchAction, setBatchAction] = useState<'read' | 'unread' | 'delete' | null>(null);
-    const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+    const [exportMenuOpen, setExportMenuOpen] = useState(false);
+
+    const loadMessages = async (mode: 'initial' | 'refresh' = 'initial') => {
+        if (!supabase) {
+            setError('Supabase is not configured.');
+            setIsLoading(false);
+            setIsRefreshing(false);
+            return;
+        }
+
+        if (mode === 'initial') {
+            setIsLoading(true);
+        } else {
+            setIsRefreshing(true);
+        }
+
+        const { data, error: fetchError } = await supabase
+            .from('contact_messages')
+            .select('id, name, email, message, created_at, is_read')
+            .eq('record_status', 'Active')
+            .order('created_at', { ascending: false });
+
+        if (fetchError) {
+            setError(fetchError.message);
+        } else {
+            setError(null);
+            setMessages(data ?? []);
+        }
+
+        setIsLoading(false);
+        setIsRefreshing(false);
+    };
 
     useEffect(() => {
-        let mounted = true;
-
-        const loadMessages = async () => {
-            if (!supabase) {
-                if (mounted) {
-                    setError('Supabase is not configured.');
-                    setIsLoading(false);
-                }
-                return;
-            }
-
-            const { data, error: fetchError } = await supabase
-                .from('contact_messages')
-                .select('id, name, email, message, created_at, is_read')
-                .eq('record_status', 'Active')
-                .order('created_at', { ascending: false });
-
-            if (!mounted) return;
-
-            if (fetchError) {
-                setError(fetchError.message);
-            } else {
-                setMessages(data ?? []);
-            }
-            setIsLoading(false);
-        };
-
         loadMessages();
-        return () => {
-            mounted = false;
-        };
     }, []);
 
     const formatDate = (value: string) =>
         new Date(value).toLocaleString(undefined, {
             dateStyle: 'medium',
             timeStyle: 'short'
+        });
+
+    const formatRowDate = (value: string) =>
+        new Date(value).toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric'
         });
 
     const handleSetReadState = async (message: ContactMessage, nextValue: boolean) => {
@@ -93,10 +114,6 @@ export const AdminInbox: React.FC = () => {
             );
             setError(updateError.message);
         }
-    };
-
-    const handleToggleRead = async (message: ContactMessage) => {
-        await handleSetReadState(message, !message.is_read);
     };
 
     const toggleMessageSelection = (id: string) => {
@@ -143,8 +160,21 @@ export const AdminInbox: React.FC = () => {
     }, [searchTerm, filterStatus, sortOrder]);
 
     useEffect(() => {
+        setExportMenuOpen(false);
+    }, [searchTerm, filterStatus, sortOrder, currentPage]);
+
+    useEffect(() => {
         setSelectedMessageIds((prev) => prev.filter((id) => messages.some((item) => item.id === id)));
-    }, [messages]);
+        if (selectedMessageId && !messages.some((item) => item.id === selectedMessageId)) {
+            setSelectedMessageId(null);
+        }
+    }, [messages, selectedMessageId]);
+
+    useEffect(() => {
+        const handleWindowClick = () => setExportMenuOpen(false);
+        window.addEventListener('click', handleWindowClick);
+        return () => window.removeEventListener('click', handleWindowClick);
+    }, []);
 
     const unreadCount = messages.filter((item) => !item.is_read).length;
     const pageSize = 10;
@@ -167,6 +197,19 @@ export const AdminInbox: React.FC = () => {
         );
         setSendStatus(null);
         setComposeOpen(true);
+    };
+
+    const handleExportMessages = (format: ExportFormat) => {
+        const rows = sortedMessages.map((item) => ({
+            id: item.id,
+            name: item.name,
+            email: item.email,
+            message: item.message,
+            status: item.is_read ? 'Read' : 'Unread',
+            created_at: item.created_at
+        }));
+        exportRecords('contact-messages', rows, format);
+        setExportMenuOpen(false);
     };
 
     const handleOpenMessage = async (item: ContactMessage) => {
@@ -285,70 +328,106 @@ export const AdminInbox: React.FC = () => {
         setBatchAction(null);
     };
 
-    const handleDelete = async (message: ContactMessage) => {
-        setDeletingId(message.id);
-        try {
-            await handleBatchDelete([message.id]);
-        } finally {
-            setDeletingId(null);
-        }
-    };
-
-    const toggleMenu = (id: string) => {
-        setMenuOpenId((prev) => (prev === id ? null : id));
-    };
-
     return (
         <AdminLayout>
-            <div className="rounded-[30px] border border-white/10 bg-white/90 px-7 py-6 text-black shadow-[0_25px_60px_rgba(0,0,0,0.35)] backdrop-blur">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <p className="text-xs uppercase tracking-[0.35em] text-black/50">Inbox</p>
-                        <h1 className="mt-2 text-3xl font-semibold">Contact Messages</h1>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold text-black/70 shadow-sm">
-                        {unreadCount} unread
-                    </div>
-                </div>
+            <div className="min-h-[calc(100vh-7rem)] rounded-[34px] border border-[#dadce0] bg-[#f6f8fc] p-3 text-[#202124] shadow-[0_22px_60px_rgba(15,23,42,0.16)]">
+                <div className="flex h-[calc(100vh-8.5rem)] min-h-[680px] flex-col overflow-hidden rounded-[28px] border border-[#e0e3e7] bg-white shadow-[0_10px_30px_rgba(60,64,67,0.08)]">
+                    <div className="border-b border-[#edf1f4] px-4 py-4 md:px-6">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div>
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#5f6368]">Inbox</p>
+                                <h1 className="mt-2 text-2xl font-semibold text-[#202124] md:text-3xl">Contact Messages</h1>
+                            </div>
+                            <div className="inline-flex items-center gap-2 rounded-full bg-[#e8f0fe] px-4 py-2 text-xs font-semibold text-[#174ea6]">
+                                <InboxIcon size={14} />
+                                {unreadCount} unread
+                            </div>
+                        </div>
 
-                <div className="mt-6 grid gap-3 md:grid-cols-[1.2fr,0.7fr,0.7fr]">
-                    <input
-                        type="search"
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        placeholder="Search name, email, or message..."
-                        className="h-11 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm text-black outline-none focus:border-black/30"
-                    />
-                    <select
-                        value={filterStatus}
-                        onChange={(event) => setFilterStatus(event.target.value as typeof filterStatus)}
-                        className="h-11 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm text-black outline-none focus:border-black/30"
-                    >
-                        <option value="all">All messages</option>
-                        <option value="unread">Unread only</option>
-                        <option value="read">Read only</option>
-                    </select>
-                    <select
-                        value={sortOrder}
-                        onChange={(event) => setSortOrder(event.target.value as typeof sortOrder)}
-                        className="h-11 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm text-black outline-none focus:border-black/30"
-                    >
-                        <option value="newest">Newest first</option>
-                        <option value="oldest">Oldest first</option>
-                        <option value="unread">Unread first</option>
-                    </select>
-                </div>
+                        <div className="mt-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                            <div className="relative flex-1 max-w-3xl">
+                                <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#5f6368]" />
+                                <input
+                                    type="search"
+                                    value={searchTerm}
+                                    onChange={(event) => setSearchTerm(event.target.value)}
+                                    placeholder="Search mail"
+                                    className="h-12 w-full rounded-full border border-transparent bg-[#f1f3f4] pl-11 pr-4 text-sm text-[#202124] outline-none transition focus:border-[#d2e3fc] focus:bg-white focus:shadow-[0_0_0_3px_rgba(26,115,232,0.12)]"
+                                />
+                            </div>
 
-                <div className="mt-6 rounded-3xl border border-black/10 bg-white shadow-[0_20px_40px_rgba(0,0,0,0.12)]">
-                    <div className="border-b border-black/10 px-6 py-4">
-                        <p className="text-sm font-semibold">Latest messages</p>
-                        <p className="text-xs text-black/50">Direct from the contact form.</p>
-                    </div>
-
-                    {!isLoading && !error && sortedMessages.length > 0 && (
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 px-6 py-4">
                             <div className="flex flex-wrap items-center gap-3">
-                                <label className="flex items-center gap-3 text-sm font-medium text-black/70">
+                                <select
+                                    value={filterStatus}
+                                    onChange={(event) => setFilterStatus(event.target.value as typeof filterStatus)}
+                                    className="h-11 rounded-full border border-[#dadce0] bg-white px-4 text-sm text-[#202124] outline-none transition hover:border-[#c7cacf] focus:border-[#1a73e8]"
+                                >
+                                    <option value="all">All mail</option>
+                                    <option value="unread">Unread</option>
+                                    <option value="read">Read</option>
+                                </select>
+                                <select
+                                    value={sortOrder}
+                                    onChange={(event) => setSortOrder(event.target.value as typeof sortOrder)}
+                                    className="h-11 rounded-full border border-[#dadce0] bg-white px-4 text-sm text-[#202124] outline-none transition hover:border-[#c7cacf] focus:border-[#1a73e8]"
+                                >
+                                    <option value="newest">Newest</option>
+                                    <option value="oldest">Oldest</option>
+                                    <option value="unread">Unread first</option>
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={() => loadMessages('refresh')}
+                                    disabled={isRefreshing || isLoading}
+                                    className="inline-flex h-11 items-center gap-2 rounded-full border border-[#dadce0] bg-white px-4 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa] disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                                    Refresh
+                                </button>
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            setExportMenuOpen((prev) => !prev);
+                                        }}
+                                        disabled={sortedMessages.length === 0 || isLoading}
+                                        className="inline-flex h-11 items-center gap-2 rounded-full border border-[#dadce0] bg-white px-4 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa] disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        <Download size={16} />
+                                        Export
+                                    </button>
+                                    {exportMenuOpen && (
+                                        <div
+                                            onClick={(event) => event.stopPropagation()}
+                                            className="absolute right-0 top-12 z-10 w-40 rounded-2xl border border-[#dadce0] bg-white p-2 shadow-[0_20px_40px_rgba(0,0,0,0.16)]"
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => handleExportMessages('csv')}
+                                                className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-[#3c4043] transition hover:bg-[#f1f3f4]"
+                                            >
+                                                Export CSV
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleExportMessages('json')}
+                                                className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-[#3c4043] transition hover:bg-[#f1f3f4]"
+                                            >
+                                                Export JSON
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex min-h-0 flex-1 flex-col">
+                    {!isLoading && !error && sortedMessages.length > 0 && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#edf1f4] px-4 py-3 md:px-6">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <label className="flex items-center gap-3 text-sm font-medium text-[#3c4043]">
                                     <input
                                         type="checkbox"
                                         checked={allPageSelected}
@@ -358,15 +437,11 @@ export const AdminInbox: React.FC = () => {
                                             }
                                         }}
                                         onChange={toggleSelectCurrentPage}
-                                        className="h-4 w-4 rounded border border-black/20 text-[#0a2f22] focus:ring-[#0a2f22]"
+                                        className="h-4 w-4 rounded border border-[#c4c7c5] text-[#1a73e8] focus:ring-[#1a73e8]"
                                     />
                                     Select this page
                                 </label>
-                                <span className="text-xs text-black/50">
-                                    {selectedCount > 0
-                                        ? `${selectedCount} selected`
-                                        : `${sortedMessages.length} total messages`}
-                                </span>
+                                <span className="text-xs text-[#5f6368]">{selectedCount > 0 ? `${selectedCount} selected` : `${sortedMessages.length} messages`}</span>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2">
@@ -374,24 +449,27 @@ export const AdminInbox: React.FC = () => {
                                     type="button"
                                     onClick={() => handleBatchSetReadState(selectedMessageIds, true)}
                                     disabled={selectedCount === 0 || batchAction !== null}
-                                    className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/70 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-[#3c4043] transition hover:bg-[#f1f3f4] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    {batchAction === 'read' ? 'Marking Read...' : 'Mark Read'}
+                                    <MailOpen size={16} />
+                                    {batchAction === 'read' ? 'Marking...' : 'Read'}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => handleBatchSetReadState(selectedMessageIds, false)}
                                     disabled={selectedCount === 0 || batchAction !== null}
-                                    className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/70 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-[#3c4043] transition hover:bg-[#f1f3f4] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    {batchAction === 'unread' ? 'Marking Unread...' : 'Mark Unread'}
+                                    <Mail size={16} />
+                                    {batchAction === 'unread' ? 'Marking...' : 'Unread'}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => handleBatchDelete(selectedMessageIds)}
                                     disabled={selectedCount === 0 || batchAction !== null}
-                                    className="rounded-full border border-red-200 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-[#b3261e] transition hover:bg-[#fce8e6] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
+                                    <Trash2 size={16} />
                                     {batchAction === 'delete' ? 'Deleting...' : 'Delete'}
                                 </button>
                             </div>
@@ -399,138 +477,81 @@ export const AdminInbox: React.FC = () => {
                     )}
 
                     {isLoading && (
-                        <div className="px-6 py-6 text-sm text-black/60">Loading messages...</div>
+                        <div className="px-6 py-16 text-center text-sm text-[#5f6368]">Loading messages...</div>
                     )}
 
                     {!isLoading && error && (
-                        <div className="px-6 py-6 text-sm text-red-600">{error}</div>
+                        <div className="px-6 py-16 text-center text-sm text-red-600">{error}</div>
                     )}
 
                     {!isLoading && !error && messages.length === 0 && (
-                        <div className="px-6 py-10 text-sm text-black/60">
-                            No messages yet. New contact form submissions will appear here.
+                        <div className="px-6 py-16 text-center">
+                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#f1f3f4] text-[#5f6368]">
+                                <InboxIcon size={28} />
+                            </div>
+                            <p className="mt-4 text-base font-semibold text-[#202124]">No messages yet</p>
+                            <p className="mt-1 text-sm text-[#5f6368]">
+                                New contact form submissions will appear here.
+                            </p>
                         </div>
                     )}
 
                     {!isLoading && !error && sortedMessages.length > 0 && (
-                        <div className="divide-y divide-black/10">
+                        <div className="flex-1 overflow-y-auto divide-y divide-[#edf1f4]">
                             {pagedMessages.map((item) => (
-                                <div key={item.id} className="px-6 py-5">
-                                    <div className="flex flex-wrap items-start justify-between gap-3">
-                                        <div className="flex min-w-0 flex-1 items-start gap-3">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedIdSet.has(item.id)}
-                                                onChange={() => toggleMessageSelection(item.id)}
-                                                className="mt-1 h-4 w-4 rounded border border-black/20 text-[#0a2f22] focus:ring-[#0a2f22]"
-                                                aria-label={`Select message from ${item.name}`}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => handleOpenMessage(item)}
-                                                className="min-w-0 flex-1 text-left"
-                                            >
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span
-                                                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                                                            item.is_read
-                                                                ? 'bg-black/5 text-black/50'
-                                                                : 'bg-[#c9ff3c] text-black'
-                                                        }`}
-                                                    >
-                                                        {item.is_read ? 'Read' : 'Unread'}
-                                                    </span>
-                                                    <p className="text-base font-semibold">{item.name}</p>
-                                                </div>
-                                                <p className="text-sm text-black/60">
-                                                    {item.email}
-                                                </p>
-                                            </button>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs text-black/50">
-                                            <span>{formatDate(item.created_at)}</span>
-                                            <div className="relative">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleMenu(item.id)}
-                                                    className="flex h-7 w-7 items-center justify-center rounded-full border border-black/10 text-black/60 transition hover:border-black/30 hover:text-black"
-                                                    aria-haspopup="menu"
-                                                    aria-expanded={menuOpenId === item.id}
-                                                    aria-label="Message actions"
-                                                >
-                                                    •••
-                                                </button>
-                                                {menuOpenId === item.id && (
-                                                    <div
-                                                        className="absolute right-0 top-9 z-10 w-40 rounded-xl border border-black/10 bg-white p-1 shadow-[0_16px_30px_rgba(0,0,0,0.15)]"
-                                                    role="menu"
-                                                >
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                handleOpenMessage(item);
-                                                                setMenuOpenId(null);
-                                                            }}
-                                                            className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-black/70 hover:bg-black/5"
-                                                            role="menuitem"
-                                                        >
-                                                            View
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                openReply(item);
-                                                                setMenuOpenId(null);
-                                                            }}
-                                                            className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-black/70 hover:bg-black/5"
-                                                            role="menuitem"
-                                                        >
-                                                            Reply
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                handleToggleRead(item);
-                                                                setMenuOpenId(null);
-                                                            }}
-                                                            className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-black/70 hover:bg-black/5"
-                                                            role="menuitem"
-                                                        >
-                                                            Mark {item.is_read ? 'Unread' : 'Read'}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                handleDelete(item);
-                                                                setMenuOpenId(null);
-                                                            }}
-                                                            disabled={deletingId === item.id || batchAction !== null}
-                                                            className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                                            role="menuitem"
-                                                        >
-                                                            {deletingId === item.id ? 'Deleting...' : 'Delete'}
-                                                        </button>
-                                                    </div>
-                                                )}
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => handleOpenMessage(item)}
+                                    className={`grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition md:px-6 ${
+                                        selectedMessage?.id === item.id
+                                            ? 'bg-[#e8f0fe]'
+                                            : item.is_read
+                                              ? 'bg-white hover:bg-[#f8f9fa]'
+                                              : 'bg-[#f2f6fc] hover:bg-[#eef3fd]'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-3" onClick={(event) => event.stopPropagation()}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIdSet.has(item.id)}
+                                            onChange={() => toggleMessageSelection(item.id)}
+                                            className="h-4 w-4 rounded border border-[#c4c7c5] text-[#1a73e8] focus:ring-[#1a73e8]"
+                                            aria-label={`Select message from ${item.name}`}
+                                        />
+                                        <div className={`h-2.5 w-2.5 rounded-full ${item.is_read ? 'bg-transparent' : 'bg-[#1a73e8]'}`} />
+                                    </div>
+
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2 md:grid md:grid-cols-[180px_minmax(0,1fr)] md:gap-4">
+                                            <p className={`truncate text-sm ${item.is_read ? 'font-medium text-[#3c4043]' : 'font-semibold text-[#202124]'}`}>
+                                                {item.name}
+                                            </p>
+                                            <div className="min-w-0 text-sm text-[#5f6368]">
+                                                <span className="font-medium text-[#3c4043]">{item.email}</span>
+                                                <span className="mx-2 hidden md:inline">-</span>
+                                                <span>{previewMessage(item.message)}</span>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+
+                                    <div className="text-right text-xs font-medium text-[#5f6368]">
+                                        {formatRowDate(item.created_at)}
+                                    </div>
+                                </button>
                             ))}
                         </div>
                     )}
 
                     {!isLoading && !error && sortedMessages.length > 0 && totalPages > 1 && (
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 px-6 py-4 text-xs text-black/60">
-                            <span>
-                                Page {safePage} of {totalPages}
-                            </span>
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#edf1f4] px-4 py-3 text-xs text-[#5f6368] md:px-6">
+                            <span>Page {safePage} of {totalPages}</span>
                             <div className="flex items-center gap-2">
                                 <button
                                     type="button"
                                     onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                                     disabled={safePage === 1}
-                                    className="rounded-full border border-black/10 px-3 py-1 text-[11px] font-semibold text-black/70 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="rounded-full px-3 py-1.5 font-semibold transition hover:bg-[#f1f3f4] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     Previous
                                 </button>
@@ -538,7 +559,7 @@ export const AdminInbox: React.FC = () => {
                                     type="button"
                                     onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                                     disabled={safePage === totalPages}
-                                    className="rounded-full border border-black/10 px-3 py-1 text-[11px] font-semibold text-black/70 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="rounded-full px-3 py-1.5 font-semibold transition hover:bg-[#f1f3f4] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     Next
                                 </button>
@@ -547,61 +568,59 @@ export const AdminInbox: React.FC = () => {
                     )}
 
                     {!isLoading && !error && messages.length > 0 && sortedMessages.length === 0 && (
-                        <div className="px-6 py-10 text-sm text-black/60">
+                        <div className="px-6 py-16 text-center text-sm text-[#5f6368]">
                             No messages match your current search or filters.
                         </div>
                     )}
+                    </div>
                 </div>
             </div>
 
             {composeOpen && (
                 <div
-                    className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50 px-4 pb-6 sm:items-center sm:pb-0"
+                    className="fixed inset-0 z-[200] flex items-end justify-center bg-black/45 px-4 pb-6 sm:items-center sm:pb-0"
                     onClick={() => setComposeOpen(false)}
                 >
                     <div
-                        className="w-full max-w-2xl rounded-3xl bg-white shadow-[0_30px_80px_rgba(0,0,0,0.45)] pointer-events-auto"
+                        className="w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-[0_30px_80px_rgba(0,0,0,0.35)] pointer-events-auto"
                         onClick={(event) => event.stopPropagation()}
                     >
-                        <div className="border-b border-black/10 px-6 py-4">
-                            <div>
-                                <p className="text-xs uppercase tracking-[0.3em] text-black/50">Compose</p>
-                                <h2 className="text-lg font-semibold text-black">Reply to {composeName}</h2>
-                            </div>
+                        <div className="border-b border-[#edf1f4] bg-[#f8f9fa] px-6 py-4">
+                            <p className="text-sm font-semibold text-[#202124]">Reply to {composeName}</p>
                         </div>
                         <div className="px-6 py-5">
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-xs font-semibold text-black/70">To</label>
+                                    <label className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5f6368]">To</label>
                                     <input
                                         value={composeTo}
                                         readOnly
-                                        className="mt-2 h-11 w-full rounded-xl border border-black/10 bg-white px-3 text-sm text-black placeholder:text-black/40"
+                                        className="mt-2 h-11 w-full rounded-2xl border border-[#dadce0] bg-white px-3 text-sm text-[#202124]"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-semibold text-black/70">Subject</label>
+                                    <label className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5f6368]">Subject</label>
                                     <input
                                         value={composeSubject}
                                         onChange={(event) => setComposeSubject(event.target.value)}
                                         autoFocus
-                                        className="mt-2 h-11 w-full rounded-xl border border-black/10 bg-white px-3 text-sm text-black placeholder:text-black/40"
+                                        className="mt-2 h-11 w-full rounded-2xl border border-[#dadce0] bg-white px-3 text-sm text-[#202124] outline-none focus:border-[#1a73e8]"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-semibold text-black/70">Message</label>
+                                    <label className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5f6368]">Message</label>
                                     <textarea
                                         value={composeBody}
                                         onChange={(event) => setComposeBody(event.target.value)}
                                         rows={7}
-                                        className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3 text-sm text-black placeholder:text-black/40"
+                                        className="mt-2 w-full rounded-2xl border border-[#dadce0] bg-white px-3 py-3 text-sm text-[#202124] outline-none focus:border-[#1a73e8]"
                                     />
                                 </div>
                             </div>
 
                             {sendStatus && (
                                 <div
-                                    className={`mt-4 rounded-xl border px-3 py-2 text-xs ${
+                                    className={`mt-4 rounded-2xl border px-3 py-2 text-xs ${
                                         sendStatus.type === 'success'
                                             ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                                             : 'border-red-200 bg-red-50 text-red-600'
@@ -611,11 +630,11 @@ export const AdminInbox: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="flex items-center justify-end gap-3 border-t border-black/10 px-6 py-4">
+                        <div className="flex items-center justify-end gap-3 border-t border-[#edf1f4] px-6 py-4">
                             <button
                                 type="button"
                                 onClick={() => setComposeOpen(false)}
-                                className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/60 hover:text-black"
+                                className="rounded-full px-4 py-2 text-sm font-medium text-[#5f6368] transition hover:bg-[#f1f3f4] hover:text-[#202124]"
                             >
                                 Cancel
                             </button>
@@ -623,7 +642,7 @@ export const AdminInbox: React.FC = () => {
                                 type="button"
                                 onClick={handleSendReply}
                                 disabled={isSending}
-                                className="rounded-full bg-[#0a2f22] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0d3b2b] disabled:cursor-not-allowed disabled:opacity-70"
+                                className="rounded-full bg-[#1a73e8] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1765cc] disabled:cursor-not-allowed disabled:opacity-70"
                             >
                                 {isSending ? 'Sending...' : 'Send Reply'}
                             </button>
@@ -634,25 +653,25 @@ export const AdminInbox: React.FC = () => {
 
             {selectedMessage && (
                 <div
-                    className="fixed inset-0 z-[210] flex items-end justify-center bg-black/50 px-4 pb-6 sm:items-center sm:pb-0"
+                    className="fixed inset-0 z-[210] flex items-end justify-center bg-black/45 px-4 pb-6 sm:items-center sm:pb-0"
                     onClick={() => setSelectedMessageId(null)}
                 >
                     <div
-                        className="w-full max-w-2xl rounded-3xl bg-white shadow-[0_30px_80px_rgba(0,0,0,0.45)]"
+                        className="w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-[0_30px_80px_rgba(0,0,0,0.35)]"
                         onClick={(event) => event.stopPropagation()}
                     >
-                        <div className="border-b border-black/10 px-6 py-4">
-                            <p className="text-xs uppercase tracking-[0.3em] text-black/50">Message</p>
-                            <h2 className="mt-1 text-lg font-semibold text-black">{selectedMessage.name}</h2>
-                            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-black/50">
+                        <div className="border-b border-[#edf1f4] px-6 py-4">
+                            <p className="text-xs uppercase tracking-[0.22em] text-[#5f6368]">Message</p>
+                            <h2 className="mt-2 text-lg font-semibold text-[#202124]">{selectedMessage.name}</h2>
+                            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#5f6368]">
                                 <span>{selectedMessage.email}</span>
                                 <span>|</span>
                                 <span>{formatDate(selectedMessage.created_at)}</span>
                                 <span
                                     className={`inline-flex items-center rounded-full px-2 py-0.5 font-semibold ${
                                         selectedMessage.is_read
-                                            ? 'bg-black/5 text-black/50'
-                                            : 'bg-[#c9ff3c] text-black'
+                                            ? 'bg-[#f1f3f4] text-[#5f6368]'
+                                            : 'bg-[#e8f0fe] text-[#174ea6]'
                                     }`}
                                 >
                                     {selectedMessage.is_read ? 'Read' : 'Unread'}
@@ -660,25 +679,25 @@ export const AdminInbox: React.FC = () => {
                             </div>
                         </div>
                         <div className="px-6 py-5">
-                            <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-4 text-sm text-black/80 whitespace-pre-wrap">
+                            <div className="rounded-2xl border border-[#edf1f4] bg-[#fbfcff] px-4 py-4 text-sm text-[#202124] whitespace-pre-wrap">
                                 {selectedMessage.message}
                             </div>
                         </div>
-                        <div className="flex items-center justify-end gap-3 border-t border-black/10 px-6 py-4">
+                        <div className="flex items-center justify-end gap-3 border-t border-[#edf1f4] px-6 py-4">
                             <button
                                 type="button"
                                 onClick={() => {
                                     openReply(selectedMessage);
                                     setSelectedMessageId(null);
                                 }}
-                                className="rounded-full bg-[#0a2f22] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0d3b2b]"
+                                className="rounded-full bg-[#1a73e8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1765cc]"
                             >
                                 Reply
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setSelectedMessageId(null)}
-                                className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black/60 hover:text-black"
+                                className="rounded-full px-4 py-2 text-sm font-medium text-[#5f6368] transition hover:bg-[#f1f3f4] hover:text-[#202124]"
                             >
                                 Close
                             </button>
